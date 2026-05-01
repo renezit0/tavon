@@ -20,7 +20,7 @@ const app = Fastify({
 
 const store = new DemoStore();
 const mysqlPool = createMysqlPool();
-const corsOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
+const corsOrigins: string[] | boolean = env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((o) => o.trim());
 
 const demoUser = {
   id: "usr_admin",

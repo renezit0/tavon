@@ -40,7 +40,7 @@ async function startApi() {
   process.env.API_HOST = process.env.API_HOST || "127.0.0.1";
   process.env.API_PORT = process.env.API_PORT || "3333";
   process.env.APP_PUBLIC_URL = process.env.APP_PUBLIC_URL || "http://localhost:5180";
-  process.env.CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5180,file://";
+  process.env.CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
   try {
     const controller = new AbortController();
@@ -67,12 +67,16 @@ function createWindow() {
     backgroundColor: "#111417",
     title: app.getName(),
     autoHideMenuBar: true,
+    show: false,
+    icon: path.join(__dirname, "build", "icon.png"),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, "preload.cjs")
     }
   });
+
+  mainWindow.once("ready-to-show", () => mainWindow.show());
 
   const devUrl = process.env.WEB_URL;
   const initialRoute = resolveInitialRoute();

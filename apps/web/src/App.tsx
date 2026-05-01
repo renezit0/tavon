@@ -423,8 +423,8 @@ function App() {
   const openOrders = orders.filter((order) => !["delivered", "cancelled"].includes(order.status)).length;
   const toastIsError = /\b(falha|erro|nao|não|invalido|inválido|impossivel|possivel|autenticado|credenciais)\b/i.test(toast);
   const navigate = (href: string) => {
-    window.history.pushState({}, "", href);
-    setActivePage(getPageFromPathname(getCurrentAppPathname()));
+    try { window.history.pushState({}, "", href); } catch { /* file:// context */ }
+    setActivePage(getPageFromPathname(href));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const showOperationalShell = activePage !== "client";
