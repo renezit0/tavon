@@ -1,0 +1,25 @@
+{
+  "name": "Tavon Restaurant OS",
+  "short_name": "Tavon",
+  "description": "Sistema de cardapio QR, comandas, cozinha e caixa.",
+  "start_url": "/cardapio?table=M01",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#111417",
+  "background_color": "#0f1110",
+  "icons": [
+    {
+      "src": "/tavonlogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tavonlogowhite.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

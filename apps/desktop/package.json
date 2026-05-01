@@ -1,0 +1,100 @@
+{
+  "name": "@restaurant/desktop",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Electron wrapper for the Restaurant QR Suite web build.",
+  "author": "Tavon",
+  "main": "electron-main.cjs",
+  "scripts": {
+    "dev": "WEB_URL=http://localhost:5180 electron .",
+    "build:app": "npm run build -w @restaurant/shared && npm run build -w @restaurant/api && npm run build -w @restaurant/web",
+    "dist:win": "npm run dist:win:all",
+    "dist:win:all": "npm run build:app && npm run dist:win:admin:only && npm run dist:win:cardapio:only && npm run dist:win:garcom:only && npm run dist:win:cozinha:only && npm run dist:win:caixa:only",
+    "dist:win:admin": "npm run build:app && npm run dist:win:admin:only",
+    "dist:win:cardapio": "npm run build:app && npm run dist:win:cardapio:only",
+    "dist:win:garcom": "npm run build:app && npm run dist:win:garcom:only",
+    "dist:win:cozinha": "npm run build:app && npm run dist:win:cozinha:only",
+    "dist:win:caixa": "npm run build:app && npm run dist:win:caixa:only",
+    "dist:win:admin:only": "electron-builder --win nsis --x64 --config.productName=\"Tavon Admin\" --config.appId=\"com.tavon.restaurant.admin\" --config.artifactName=\"Tavon-Admin-Setup-\\${version}.exe\"",
+    "dist:win:cardapio:only": "electron-builder --win nsis --x64 --config.productName=\"Tavon Cardapio\" --config.appId=\"com.tavon.restaurant.cardapio\" --config.artifactName=\"Tavon-Cardapio-Setup-\\${version}.exe\"",
+    "dist:win:garcom:only": "electron-builder --win nsis --x64 --config.productName=\"Tavon Garcom\" --config.appId=\"com.tavon.restaurant.garcom\" --config.artifactName=\"Tavon-Garcom-Setup-\\${version}.exe\"",
+    "dist:win:cozinha:only": "electron-builder --win nsis --x64 --config.productName=\"Tavon Cozinha\" --config.appId=\"com.tavon.restaurant.cozinha\" --config.artifactName=\"Tavon-Cozinha-Setup-\\${version}.exe\"",
+    "dist:win:caixa:only": "electron-builder --win nsis --x64 --config.productName=\"Tavon Caixa\" --config.appId=\"com.tavon.restaurant.caixa\" --config.artifactName=\"Tavon-Caixa-Setup-\\${version}.exe\"",
+    "publish:win:all": "npm run build:app && npm run publish:win:admin:only && npm run publish:win:cardapio:only && npm run publish:win:garcom:only && npm run publish:win:cozinha:only && npm run publish:win:caixa:only",
+    "publish:win:admin": "npm run build:app && npm run publish:win:admin:only",
+    "publish:win:cardapio": "npm run build:app && npm run publish:win:cardapio:only",
+    "publish:win:garcom": "npm run build:app && npm run publish:win:garcom:only",
+    "publish:win:cozinha": "npm run build:app && npm run publish:win:cozinha:only",
+    "publish:win:caixa": "npm run build:app && npm run publish:win:caixa:only",
+    "publish:win:admin:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Admin\" --config.appId=\"com.tavon.restaurant.admin\" --config.artifactName=\"Tavon-Admin-Setup-\\${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=admin-v",
+    "publish:win:cardapio:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Cardapio\" --config.appId=\"com.tavon.restaurant.cardapio\" --config.artifactName=\"Tavon-Cardapio-Setup-\\${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=cardapio-v",
+    "publish:win:garcom:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Garcom\" --config.appId=\"com.tavon.restaurant.garcom\" --config.artifactName=\"Tavon-Garcom-Setup-\\${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=garcom-v",
+    "publish:win:cozinha:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Cozinha\" --config.appId=\"com.tavon.restaurant.cozinha\" --config.artifactName=\"Tavon-Cozinha-Setup-\\${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=cozinha-v",
+    "publish:win:caixa:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Caixa\" --config.appId=\"com.tavon.restaurant.caixa\" --config.artifactName=\"Tavon-Caixa-Setup-\\${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=caixa-v"
+  },
+  "build": {
+    "appId": "com.tavon.restaurant.desktop",
+    "productName": "Tavon",
+    "directories": {
+      "output": "../../release/windows"
+    },
+    "files": [
+      "electron-main.cjs",
+      "preload.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web/dist"
+      },
+      {
+        "from": "../api/dist",
+        "to": "api/dist"
+      },
+      {
+        "from": "../../node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*",
+          "!electron{,/**/*}",
+          "!electron-builder{,/**/*}",
+          "!@electron{,/**/*}",
+          "!@restaurant{,/**/*}",
+          "!app-builder-bin{,/**/*}",
+          "!builder-util{,/**/*}",
+          "!builder-util-runtime{,/**/*}",
+          "!dmg-builder{,/**/*}",
+          "!app-builder-lib{,/**/*}",
+          "!typescript{,/**/*}",
+          "!vite{,/**/*}"
+        ]
+      },
+      {
+        "from": "../../packages/shared",
+        "to": "node_modules/@restaurant/shared",
+        "filter": [
+          "dist/**/*",
+          "package.json"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "35.0.0",
+    "electron-builder": "26.8.1"
+  }
+}
