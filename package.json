@@ -1,6 +1,6 @@
 {
   "name": "restaurant-qr-suite",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "description": "Sistema multi-restaurante para pedidos por QR Code, cozinha, caixa e administracao.",
   "workspaces": [
