@@ -210,3 +210,10 @@ app.whenReady().then(async () => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+app.on("before-quit", () => {
+  // Garante que o processo termina completamente no Windows
+  if (process.platform === "win32") {
+    setTimeout(() => process.exit(0), 1500);
+  }
+});
