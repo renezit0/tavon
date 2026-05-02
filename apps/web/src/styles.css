@@ -67,12 +67,14 @@ b {
   --warning: #d8ac58;
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: linear-gradient(180deg, #11120f 0%, #0e1110 54%, #10100e 100%);
   color: var(--text);
 }
 
-.app.route-client {
+.app.route-client,
+.app.module-locked {
   grid-template-columns: 1fr;
 }
 
@@ -173,6 +175,8 @@ b {
 
 .workspace {
   min-width: 0;
+  height: 100%;
+  overflow-y: auto;
   padding:
     max(30px, env(safe-area-inset-top))
     max(30px, env(safe-area-inset-right))

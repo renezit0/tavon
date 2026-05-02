@@ -295,6 +295,13 @@ function getCurrentAppPathname() {
   return new URLSearchParams(window.location.search).get("appRoute") || window.location.pathname;
 }
 
+// Módulo travado: no Electron, a tela é fixada ao módulo instalado (ex: só Cozinha)
+const desktopLockedPage = (() => {
+  if (!window.tavonDesktop?.isDesktop) return null;
+  const page = getPageFromPathname(getCurrentAppPathname());
+  return page !== "home" && page !== "admin" ? page : null;
+})();
+
 function App() {
   const [activePage, setActivePage] = useState<PageId>(() => getPageFromPathname(getCurrentAppPathname()));
   const [restaurant, setRestaurant] = useState<RestaurantSettings>(defaultRestaurant);
@@ -431,14 +438,15 @@ function App() {
   const openOrders = orders.filter((order) => !["delivered", "cancelled"].includes(order.status)).length;
   const toastIsError = /\b(falha|erro|nao|não|invalido|inválido|impossivel|possivel|autenticado|credenciais)\b/i.test(toast);
   const navigate = (href: string) => {
+    if (desktopLockedPage) return; // módulo travado: bloqueia navegação cruzada
     try { window.history.pushState({}, "", href); } catch { /* file:// context */ }
     setActivePage(getPageFromPathname(href));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const showOperationalShell = activePage !== "client";
+  const showOperationalShell = activePage !== "client" && !desktopLockedPage;
 
   return (
-    <div className={`app route-${activePage}`} data-mode={themeMode} style={cssVars(restaurant)}>
+    <div className={`app route-${activePage}${desktopLockedPage ? " module-locked" : ""}`} data-mode={themeMode} style={cssVars(restaurant)}>
       {showOperationalShell && (
         <aside className="rail">
           <button className="brand-mark" onClick={() => navigate("/")} title="Inicio">
