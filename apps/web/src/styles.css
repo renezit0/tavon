@@ -2890,3 +2890,22 @@ textarea:focus {
     display: block !important;
   }
 }
+
+/* ── Scrollbars (Chromium/Electron — funciona no Windows e Mac) ─────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
