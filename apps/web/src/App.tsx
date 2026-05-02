@@ -330,6 +330,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [desktopConfigOpen, setDesktopConfigOpen] = useState(false);
+  const [desktopConfigUnlocked, setDesktopConfigUnlocked] = useState(false);
   const [desktopServerUrl, setDesktopServerUrl] = useState(api.baseUrl);
   const [desktopConfigPassword, setDesktopConfigPassword] = useState("");
   const [desktopConfigError, setDesktopConfigError] = useState("");
@@ -461,6 +462,20 @@ function App() {
     });
   }, []);
 
+  const MODULE_NAMES: Record<string, string> = {
+    admin:   "Tavon Admin",
+    client:  "Tavon Cardápio",
+    waiter:  "Tavon Garçom",
+    kitchen: "Tavon Cozinha",
+    cashier: "Tavon Caixa",
+    home:    "Tavon"
+  };
+
+  useEffect(() => {
+    const name = MODULE_NAMES[activePage] ?? "Tavon";
+    document.title = name;
+  }, [activePage]);
+
   const themeMode = restaurant.theme.mode === "light" ? "light" : "dark";
   const logoUrl = themedLogoUrl(restaurant);
   const openOrders = orders.filter((order) => !["delivered", "cancelled"].includes(order.status)).length;
@@ -471,12 +486,25 @@ function App() {
     setActivePage(getPageFromPathname(href));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const saveDesktopServerConfig = async () => {
+  const openDesktopConfig = () => {
+    setDesktopConfigPassword("");
     setDesktopConfigError("");
+    setDesktopConfigUnlocked(false);
+    setDesktopConfigOpen(true);
+  };
+
+  const unlockDesktopConfig = () => {
     if (desktopConfigPassword !== "1234") {
       setDesktopConfigError("Senha invalida");
       return;
     }
+    setDesktopConfigError("");
+    setDesktopConfigUnlocked(true);
+    setDesktopServerUrl(api.baseUrl);
+  };
+
+  const saveDesktopServerConfig = async () => {
+    setDesktopConfigError("");
     const normalizedUrl = desktopServerUrl.trim().replace(/\/+$/, "");
     try {
       if (window.tavonDesktop?.setConfig) {
@@ -522,7 +550,7 @@ function App() {
         {showOperationalShell && (
           <header className="topbar">
             <div>
-              <p className="eyebrow">Restaurant QR Suite</p>
+              <p className="eyebrow">{MODULE_NAMES[activePage] ?? "Tavon"}</p>
               <h1>{activePage === "home" ? restaurant.name : routeLinks.find((link) => link.id === activePage)?.label}</h1>
             </div>
             <div className="topbar-actions">
@@ -531,9 +559,8 @@ function App() {
                 {openOrders} ativos
               </span>
               {window.tavonDesktop?.isDesktop && (
-                <button className="ghost-button" onClick={() => setDesktopConfigOpen(true)}>
-                  <Settings2 size={17} />
-                  Servidor
+                <button className="icon-button" onClick={openDesktopConfig} title="Configurar servidor">
+                  <Settings2 size={18} />
                 </button>
               )}
               <button
@@ -568,7 +595,7 @@ function App() {
             <X size={18} />
             <span>{error}</span>
             {window.tavonDesktop?.isDesktop && (
-              <button className="ghost-button" onClick={() => setDesktopConfigOpen(true)}>
+              <button className="ghost-button" onClick={openDesktopConfig}>
                 Configurar servidor
               </button>
             )}
@@ -629,6 +656,7 @@ function App() {
                   }
                 }}
                 navigate={navigate}
+                onConfigOpen={openDesktopConfig}
               />
             )}
             {activePage === "waiter" && (
@@ -654,7 +682,7 @@ function App() {
                 }}
                 onToast={setToast}
                 onReload={reload}
-                onConfigOpen={() => setDesktopConfigOpen(true)}
+                onConfigOpen={openDesktopConfig}
               />
             )}
             {activePage === "kitchen" && (
@@ -686,7 +714,7 @@ function App() {
                     setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o chamado");
                   }
                 }}
-                onConfigOpen={() => setDesktopConfigOpen(true)}
+                onConfigOpen={openDesktopConfig}
               />
             )}
             {activePage === "cashier" && (
@@ -696,7 +724,7 @@ function App() {
                 customerQrs={customerQrs}
                 onToast={setToast}
                 onReload={reload}
-                onConfigOpen={() => setDesktopConfigOpen(true)}
+                onConfigOpen={openDesktopConfig}
               />
             )}
           </>
@@ -709,34 +737,63 @@ function App() {
           </div>
         )}
         {desktopConfigOpen && (
-          <div className="dialog-backdrop">
-            <div className="dialog-panel desktop-config-dialog">
+          <div className="service-confirm-backdrop">
+            <section className="service-confirm-dialog tablet-settings-dialog" role="dialog" aria-modal="true">
               <button className="dialog-close" onClick={() => setDesktopConfigOpen(false)}>
-                <X size={20} />
+                <X size={18} />
               </button>
-              <p className="eyebrow">Configuracao local</p>
-              <h2>Servidor usado por este app</h2>
-              <p className="muted-text">
-                Informe o endereco da maquina que roda o Tavon Servidor. Exemplo: http://192.168.0.10:3333
-              </p>
-              <label className="field">
-                Endereco do servidor
-                <input value={desktopServerUrl} onChange={(event) => setDesktopServerUrl(event.target.value)} />
-              </label>
-              <label className="field">
-                Senha
-                <input
-                  type="password"
-                  value={desktopConfigPassword}
-                  onChange={(event) => setDesktopConfigPassword(event.target.value)}
-                  placeholder="1234"
-                />
-              </label>
-              {desktopConfigError && <p className="inline-error">{desktopConfigError}</p>}
-              <button className="primary-button full" onClick={saveDesktopServerConfig}>
-                Salvar servidor
-              </button>
-            </div>
+              <div className="service-confirm-icon">
+                <Settings2 size={26} />
+              </div>
+              <p className="eyebrow">Configuracao</p>
+              <h3>Servidor Tavon</h3>
+              {!desktopConfigUnlocked ? (
+                <>
+                  <p>Digite a senha para configurar o endereco do servidor.</p>
+                  <label className="field full">
+                    Senha
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      value={desktopConfigPassword}
+                      onChange={(e) => { setDesktopConfigPassword(e.target.value); setDesktopConfigError(""); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") unlockDesktopConfig(); }}
+                      placeholder="1234"
+                      autoFocus
+                    />
+                  </label>
+                  {desktopConfigError && <p className="inline-error">{desktopConfigError}</p>}
+                  <div className="service-confirm-actions single-action">
+                    <button className="checkout-button" onClick={unlockDesktopConfig}>
+                      Liberar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>Informe o IP da maquina com o Tavon Server. Ex: http://192.168.1.10:3333</p>
+                  <label className="field full">
+                    Endereco do servidor
+                    <input
+                      value={desktopServerUrl}
+                      onChange={(e) => setDesktopServerUrl(e.target.value)}
+                      placeholder="http://192.168.1.10:3333"
+                      onKeyDown={(e) => { if (e.key === "Enter") saveDesktopServerConfig(); }}
+                      autoFocus
+                    />
+                  </label>
+                  {desktopConfigError && <p className="inline-error">{desktopConfigError}</p>}
+                  <div className="service-confirm-actions">
+                    <button className="ghost-button" onClick={() => setDesktopConfigOpen(false)}>
+                      Cancelar
+                    </button>
+                    <button className="checkout-button" onClick={saveDesktopServerConfig}>
+                      Salvar
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
           </div>
         )}
       </main>
@@ -1977,6 +2034,7 @@ function CustomerMenu(props: {
   onRestaurantUpdate: (restaurant: RestaurantSettings) => void;
   onServiceCall: (tableId: string) => Promise<void>;
   navigate: (href: string) => void;
+  onConfigOpen?: () => void;
 }) {
   const tableCodeFromUrl = new URLSearchParams(window.location.search).get("table");
   const initialTableId =
@@ -2435,6 +2493,15 @@ function CustomerMenu(props: {
                   <span>Permitir codigo manual da comanda</span>
                   <strong>{tabletManualCheckCodeEnabled ? "Ativo" : "Somente QR"}</strong>
                 </label>
+                {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
+                  <button
+                    className="ghost-button full"
+                    onClick={() => { setTabletSettingsOpen(false); props.onConfigOpen!(); }}
+                  >
+                    <Settings2 size={15} />
+                    Configurar servidor
+                  </button>
+                )}
                 {tabletSettingsError && <p className="inline-error">{tabletSettingsError}</p>}
                 <div className="service-confirm-actions">
                   <button className="ghost-button" onClick={() => setTabletSettingsOpen(false)}>
@@ -2679,9 +2746,8 @@ function WaiterOrderPanel(props: {
             {cartQuantity} {cartQuantity === 1 ? "item" : "itens"} · {formatCurrencyBRL(cartTotal)}
           </div>
           {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
-            <button className="ghost-button" onClick={props.onConfigOpen} title="Configurar servidor">
-              <Settings2 size={16} />
-              Servidor
+            <button className="icon-button" onClick={props.onConfigOpen} title="Configurar servidor">
+              <Settings2 size={17} />
             </button>
           )}
         </div>
@@ -3063,9 +3129,8 @@ function KitchenBoard(props: {
             ))}
           </div>
           {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
-            <button className="ghost-button" onClick={props.onConfigOpen} title="Configurar servidor">
-              <Settings2 size={16} />
-              Servidor
+            <button className="icon-button" onClick={props.onConfigOpen} title="Configurar servidor">
+              <Settings2 size={17} />
             </button>
           )}
         </div>
@@ -3373,17 +3438,12 @@ function CashierPanel(props: {
           <h2>Fechamento de comanda</h2>
         </div>
         {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
-          <button className="ghost-button" onClick={props.onConfigOpen} title="Configurar servidor">
-            <Settings2 size={16} />
-            Servidor
+          <button className="icon-button" onClick={props.onConfigOpen} title="Configurar servidor">
+            <Settings2 size={17} />
           </button>
         )}
       </div>
       <div className="panel cashier-search">
-        <div>
-          <p className="eyebrow">Caixa</p>
-          <h2>Fechamento de comanda</h2>
-        </div>
         <div className="scan-row">
           <QrCode size={22} />
           <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Escanear QR ou digitar codigo" />
