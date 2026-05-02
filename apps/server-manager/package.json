@@ -1,0 +1,85 @@
+{
+  "name": "@restaurant/server-manager",
+  "version": "0.1.7",
+  "private": true,
+  "description": "Tavon Server Manager — gerencia o servidor backend da suite Tavon.",
+  "author": "Tavon",
+  "main": "electron-main.cjs",
+  "scripts": {
+    "dev": "WEB_URL=http://localhost:5181 electron .",
+    "dev:ui": "vite --port 5181",
+    "build": "tsc -p tsconfig.json && vite build",
+    "dist:win": "npm run build && electron-builder --win nsis --x64 --config.productName=\"Tavon Server\" --config.appId=\"com.tavon.restaurant.server\" --config.artifactName=\"Tavon-Server-Setup-${version}.exe\"",
+    "publish:win": "npm run build && electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Server\" --config.appId=\"com.tavon.restaurant.server\" --config.artifactName=\"Tavon-Server-Setup-${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=server-v"
+  },
+  "build": {
+    "appId": "com.tavon.restaurant.server",
+    "productName": "Tavon Server",
+    "directories": {
+      "output": "../../release/windows"
+    },
+    "files": [
+      "electron-main.cjs",
+      "preload.cjs",
+      "package.json",
+      "build/**/*",
+      "ui-dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../api/dist",
+        "to": "api/dist"
+      },
+      {
+        "from": "../../node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*",
+          "!electron{,/**/*}",
+          "!electron-builder{,/**/*}",
+          "!@electron{,/**/*}",
+          "!@restaurant{,/**/*}",
+          "!app-builder-bin{,/**/*}",
+          "!builder-util{,/**/*}",
+          "!builder-util-runtime{,/**/*}",
+          "!dmg-builder{,/**/*}",
+          "!app-builder-lib{,/**/*}",
+          "!typescript{,/**/*}",
+          "!vite{,/**/*}"
+        ]
+      },
+      {
+        "from": "../../packages/shared",
+        "to": "node_modules/@restaurant/shared",
+        "filter": ["dist/**/*", "package.json"]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "electron": "35.0.0",
+    "electron-builder": "26.8.1",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.4",
+    "vite": "^8.0.10"
+  }
+}

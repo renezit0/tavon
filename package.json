@@ -7,6 +7,7 @@
     "apps/api",
     "apps/desktop",
     "apps/web",
+    "apps/server-manager",
     "packages/shared"
   ],
   "scripts": {
@@ -27,6 +28,8 @@
     "desktop:publish:win:garcom": "npm run publish:win:garcom -w apps/desktop",
     "desktop:publish:win:cozinha": "npm run publish:win:cozinha -w apps/desktop",
     "desktop:publish:win:caixa": "npm run publish:win:caixa -w apps/desktop",
+    "server-manager:dist:win": "npm run dist:win -w apps/server-manager",
+    "server-manager:publish:win": "npm run publish:win -w apps/server-manager",
     "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/api && npm run typecheck -w apps/web",
     "lint": "npm run lint -w apps/web",
     "preview": "npm run preview -w apps/web"
