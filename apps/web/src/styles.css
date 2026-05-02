@@ -2909,3 +2909,80 @@ textarea:focus {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ── Loader splash (boot screen) ────────────────────────────────────────── */
+.loader-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background:
+    radial-gradient(1000px 500px at 80% -10%, rgba(185, 167, 132, .07), transparent 60%),
+    radial-gradient(800px 400px at -10% 110%, rgba(185, 167, 132, .04), transparent 60%),
+    #0e0e10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  animation: splashFadeIn .3s ease both;
+}
+
+@keyframes splashFadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+/* 04 – Stroke Draw */
+.loader-stroke svg {
+  width: clamp(200px, 40vw, 340px);
+  height: auto;
+  overflow: visible;
+}
+
+.loader-letter {
+  clip-path: inset(0 100% 0 0);
+  animation: loaderReveal 2.6s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+
+.loader-t    { animation-delay: 0s }
+.loader-v    { animation-delay: .22s }
+.loader-fork { animation-delay: .40s }
+.loader-n    { animation-delay: .52s }
+
+@keyframes loaderReveal {
+  0%        { clip-path: inset(0 100% 0 0) }
+  22%, 78%  { clip-path: inset(0 0%   0 0) }
+  100%      { clip-path: inset(0 0    0 100%) }
+}
+
+/* 06 – Bar Wave */
+.loader-bars {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+}
+
+.loader-bars span {
+  display: block;
+  width: 4px;
+  height: 100%;
+  border-radius: 4px;
+  background: #b9a784;
+  transform: scaleY(.2);
+  transform-origin: 50% 50%;
+  animation: loaderBarWave 1.4s ease-in-out infinite;
+}
+
+.loader-bars span:nth-child(1) { animation-delay: 0s;    background: #eae6df }
+.loader-bars span:nth-child(2) { animation-delay: .08s }
+.loader-bars span:nth-child(3) { animation-delay: .16s }
+.loader-bars span:nth-child(4) { animation-delay: .24s;  background: #eae6df }
+.loader-bars span:nth-child(5) { animation-delay: .32s }
+.loader-bars span:nth-child(6) { animation-delay: .40s }
+.loader-bars span:nth-child(7) { animation-delay: .48s;  background: #eae6df }
+
+@keyframes loaderBarWave {
+  0%, 100% { transform: scaleY(.2) }
+  50%       { transform: scaleY(1) }
+}
