@@ -682,7 +682,7 @@ function App() {
                 }}
                 onToast={setToast}
                 onReload={reload}
-                onConfigOpen={openDesktopConfig}
+                onConfigOpen={desktopLockedPage ? openDesktopConfig : undefined}
               />
             )}
             {activePage === "kitchen" && (
@@ -714,7 +714,7 @@ function App() {
                     setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o chamado");
                   }
                 }}
-                onConfigOpen={openDesktopConfig}
+                onConfigOpen={desktopLockedPage ? openDesktopConfig : undefined}
               />
             )}
             {activePage === "cashier" && (
@@ -724,7 +724,7 @@ function App() {
                 customerQrs={customerQrs}
                 onToast={setToast}
                 onReload={reload}
-                onConfigOpen={openDesktopConfig}
+                onConfigOpen={desktopLockedPage ? openDesktopConfig : undefined}
               />
             )}
           </>
