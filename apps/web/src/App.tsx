@@ -254,11 +254,19 @@ function cssVars(restaurant: RestaurantSettings) {
   } as React.CSSProperties;
 }
 
+function resolveAssetUrl(url: string) {
+  if (!url) return url;
+  // absolute paths break with file:// in Electron — make them relative
+  if (url.startsWith("/") && !url.startsWith("//")) return "." + url;
+  return url;
+}
+
 function themedLogoUrl(restaurant: RestaurantSettings) {
   if (!restaurant.logoUrl) return "";
   const isDark = restaurant.theme.mode !== "light";
   const isTavonLogo = restaurant.logoUrl.includes("tavonlogo");
-  return isDark && isTavonLogo ? "/tavonlogowhite.png" : restaurant.logoUrl;
+  const url = isDark && isTavonLogo ? "/tavonlogowhite.png" : restaurant.logoUrl;
+  return resolveAssetUrl(url);
 }
 
 function productUnitPrice(product: Product, addonIds: string[], optionValueIds: string[]) {

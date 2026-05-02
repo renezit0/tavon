@@ -1,6 +1,6 @@
 {
   "name": "@restaurant/desktop",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Electron wrapper for the Restaurant QR Suite web build.",
   "author": "Tavon",
@@ -85,12 +85,12 @@
       "icon": "build/icon.png"
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
       "allowElevation": true,
-      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     }
   },
   "dependencies": {
