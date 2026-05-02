@@ -2920,11 +2920,17 @@ textarea:focus {
     radial-gradient(800px 400px at -10% 110%, rgba(185, 167, 132, .04), transparent 60%),
     #0e0e10;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 40px;
   animation: splashFadeIn .3s ease both;
+}
+
+.loader-inner {
+  width: clamp(200px, 40vw, 340px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
 }
 
 @keyframes splashFadeIn {
@@ -2933,8 +2939,12 @@ textarea:focus {
 }
 
 /* 04 – Stroke Draw */
+.loader-stroke {
+  width: 100%;
+}
+
 .loader-stroke svg {
-  width: clamp(200px, 40vw, 340px);
+  width: 100%;
   height: auto;
   overflow: visible;
 }
