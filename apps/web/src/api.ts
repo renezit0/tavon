@@ -15,12 +15,32 @@ import type {
   Table
 } from "@restaurant/shared";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+const API_URL_STORAGE_KEY = "tavon:server-url";
+
+function normalizeApiUrl(url: string) {
+  return url.trim().replace(/\/+$/, "");
+}
+
+function initialApiUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const queryApiUrl = params.get("apiUrl");
+  if (queryApiUrl) {
+    const normalized = normalizeApiUrl(queryApiUrl);
+    window.localStorage.setItem(API_URL_STORAGE_KEY, normalized);
+    return normalized;
+  }
+
+  return normalizeApiUrl(
+    window.localStorage.getItem(API_URL_STORAGE_KEY) || import.meta.env.VITE_API_URL || "http://localhost:3333"
+  );
+}
+
+let apiUrl = initialApiUrl();
 
 let token = "";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${apiUrl}${path}`, {
     ...options,
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -39,7 +59,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  baseUrl: API_URL,
+  get baseUrl() {
+    return apiUrl;
+  },
+  setBaseUrl(nextUrl: string) {
+    apiUrl = normalizeApiUrl(nextUrl);
+    window.localStorage.setItem(API_URL_STORAGE_KEY, apiUrl);
+  },
   async login() {
     const response = await request<{ token: string }>("/auth/login", {
       method: "POST",

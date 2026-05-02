@@ -1,9 +1,11 @@
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
+const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
 const moduleRoutes = {
+  server: "/servidor",
   admin: "/admin",
   cardapio: "/cardapio?table=M01",
   garcom: "/garcom",
@@ -11,19 +13,61 @@ const moduleRoutes = {
   caixa: "/caixa"
 };
 
+const modulesThatStartApi = new Set(["server", "admin"]);
+
 function resourcePath(...segments) {
   if (app.isPackaged) return path.join(process.resourcesPath, ...segments);
   return path.join(__dirname, "..", ...segments);
 }
 
 function inferModuleFromProductName() {
-  const name = app.getName().toLowerCase();
+  const metadataModule = readPackageMetadata().tavonModule;
+  if (metadataModule && moduleRoutes[metadataModule]) return metadataModule;
+
+  const name = `${app.getName()} ${process.execPath}`.toLowerCase();
+  if (name.includes("server") || name.includes("servidor")) return "server";
   if (name.includes("admin")) return "admin";
   if (name.includes("cardapio") || name.includes("cardápio")) return "cardapio";
   if (name.includes("garcom") || name.includes("garçom")) return "garcom";
   if (name.includes("cozinha")) return "cozinha";
   if (name.includes("caixa")) return "caixa";
   return "admin";
+}
+
+function readPackageMetadata() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(app.getAppPath(), "package.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function configPath() {
+  return path.join(app.getPath("userData"), "tavon-config.json");
+}
+
+function readConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(configPath(), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeConfig(nextConfig) {
+  const current = readConfig();
+  const merged = {
+    serverUrl: "http://127.0.0.1:3333",
+    ...current,
+    ...nextConfig
+  };
+  fs.mkdirSync(path.dirname(configPath()), { recursive: true });
+  fs.writeFileSync(configPath(), JSON.stringify(merged, null, 2));
+  return merged;
+}
+
+function getServerUrl() {
+  return (readConfig().serverUrl || process.env.TAVON_SERVER_URL || "http://127.0.0.1:3333").replace(/\/+$/, "");
 }
 
 function resolveInitialRoute() {
@@ -37,6 +81,8 @@ function resolveModuleName() {
 
 async function startApi() {
   if (process.env.WEB_URL) return;
+  if (!modulesThatStartApi.has(resolveModuleName())) return;
+
   process.env.API_HOST = process.env.API_HOST || "127.0.0.1";
   process.env.API_PORT = process.env.API_PORT || "3333";
   process.env.APP_PUBLIC_URL = process.env.APP_PUBLIC_URL || "http://localhost:5180";
@@ -59,6 +105,7 @@ async function startApi() {
 }
 
 function createWindow() {
+  const moduleName = resolveModuleName();
   const mainWindow = new BrowserWindow({
     width: 1366,
     height: 900,
@@ -81,10 +128,15 @@ function createWindow() {
   const devUrl = process.env.WEB_URL;
   const initialRoute = resolveInitialRoute();
   if (devUrl) {
-    mainWindow.loadURL(`${devUrl}${initialRoute}`);
+    const url = new URL(`${devUrl}${initialRoute}`);
+    url.searchParams.set("appModule", moduleName);
+    url.searchParams.set("apiUrl", getServerUrl());
+    mainWindow.loadURL(url.toString());
   } else {
     const indexUrl = pathToFileURL(resourcePath("web", "dist", "index.html"));
     indexUrl.searchParams.set("appRoute", initialRoute.split("?")[0]);
+    indexUrl.searchParams.set("appModule", moduleName);
+    indexUrl.searchParams.set("apiUrl", getServerUrl());
     const query = initialRoute.split("?")[1];
     if (query) {
       for (const [key, value] of new URLSearchParams(query)) {
@@ -180,6 +232,70 @@ ipcMain.handle("printers:list", async (event) => {
     status: printer.status,
     isDefault: Boolean(printer.isDefault)
   }));
+});
+
+ipcMain.handle("config:get", () => ({
+  module: resolveModuleName(),
+  serverUrl: getServerUrl(),
+  ...readConfig()
+}));
+
+ipcMain.handle("config:set", (_event, nextConfig) => writeConfig(nextConfig || {}));
+
+ipcMain.handle("print:silent", async (event, input = {}) => {
+  const html = String(input.html || "");
+  if (!html.trim()) throw new Error("Conteudo de impressao vazio");
+
+  const printWindow = new BrowserWindow({
+    show: false,
+    width: 320,
+    height: 800,
+    webPreferences: {
+      sandbox: true
+    }
+  });
+
+  const documentHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: 80mm auto; margin: 0; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #fff; color: #111; font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .thermal-ticket { width: 80mm; padding: 4mm; color: #111; background: #fff; }
+      .thermal-ticket h1 { margin: 0 0 3mm; text-align: center; font-size: 16px; letter-spacing: 0; }
+      .thermal-ticket p { margin: 2mm 0; text-align: center; }
+      .thermal-row, .thermal-line { display: flex; justify-content: space-between; gap: 4mm; margin: 1.5mm 0; }
+      .thermal-divider { border-top: 1px dashed #111; margin: 3mm 0; }
+      .thermal-item { margin: 2mm 0; }
+      .thermal-item strong, .thermal-item small { display: block; }
+      .thermal-total { font-size: 14px; font-weight: 700; }
+    </style>
+  </head>
+  <body>${html}</body>
+</html>`;
+
+  await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(documentHtml)}`);
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      silent: true,
+      printBackground: true,
+      margins: { marginType: "none" }
+    };
+    if (input.deviceName) options.deviceName = String(input.deviceName);
+
+    printWindow.webContents.print(options, (success, failureReason) => {
+      printWindow.close();
+      if (success) {
+        event.sender.send("print:status", { status: "printed" });
+        resolve({ ok: true });
+      } else {
+        reject(new Error(failureReason || "Falha ao imprimir"));
+      }
+    });
+  });
 });
 
 ipcMain.handle("updates:check", async () => {

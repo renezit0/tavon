@@ -15,6 +15,7 @@ import {
   QrCode,
   ReceiptText,
   Search,
+  Server,
   Settings2,
   ShoppingBag,
   Sparkles,
@@ -64,8 +65,8 @@ import {
 } from "@restaurant/shared";
 import { api } from "./api";
 
-type ModuleId = "admin" | "client" | "waiter" | "kitchen" | "cashier";
-type PageId = "home" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
+type ModuleId = "server" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
+type PageId = "home" | "server" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
 
 type CartItem = {
   cartId: string;
@@ -80,6 +81,7 @@ type CartItem = {
 };
 
 const moduleTabs: Array<{ id: ModuleId; label: string; icon: typeof LayoutDashboard }> = [
+  { id: "server", label: "Servidor", icon: Server },
   { id: "admin", label: "Admin", icon: LayoutDashboard },
   { id: "client", label: "Cliente", icon: Utensils },
   { id: "waiter", label: "Garçom", icon: ClipboardList },
@@ -88,6 +90,13 @@ const moduleTabs: Array<{ id: ModuleId; label: string; icon: typeof LayoutDashbo
 ];
 
 const routeLinks: Array<{ id: PageId; label: string; href: string; icon: typeof LayoutDashboard; description: string }> = [
+  {
+    id: "server",
+    label: "Servidor Local",
+    href: "/servidor",
+    icon: Server,
+    description: "Status da API local e configuracao do endereco usado pelos apps."
+  },
   {
     id: "admin",
     label: "Painel Administrativo",
@@ -229,7 +238,7 @@ const defaultRestaurant: RestaurantSettings = {
   id: "loading",
   tenantId: "tenant_demo",
   name: "Tavon",
-  logoUrl: "",
+  logoUrl: "/tavonlogowhite.png",
   coverUrl: "",
   serviceFeePercent: 10,
   averageDeliveryMinutes: 20,
@@ -262,11 +271,21 @@ function resolveAssetUrl(url: string) {
 }
 
 function themedLogoUrl(restaurant: RestaurantSettings) {
-  if (!restaurant.logoUrl) return "";
+  if (!restaurant.logoUrl) return restaurant.theme.mode === "light" ? "/tavonlogo.png" : "/tavonlogowhite.png";
   const isDark = restaurant.theme.mode !== "light";
   const isTavonLogo = restaurant.logoUrl.includes("tavonlogo");
   const url = isDark && isTavonLogo ? "/tavonlogowhite.png" : restaurant.logoUrl;
   return resolveAssetUrl(url);
+}
+
+async function printThermalElement(selector: string) {
+  const element = document.querySelector(selector);
+  if (!element) throw new Error("Comprovante nao encontrado para impressao");
+  if (window.tavonDesktop?.printHtml) {
+    await window.tavonDesktop.printHtml({ html: element.outerHTML });
+    return;
+  }
+  window.print();
 }
 
 function productUnitPrice(product: Product, addonIds: string[], optionValueIds: string[]) {
@@ -283,6 +302,7 @@ function minutesSince(date: string) {
 }
 
 function getPageFromPathname(pathname: string): PageId {
+  if (pathname.startsWith("/servidor") || pathname.startsWith("/server")) return "server";
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/cardapio") || pathname.startsWith("/cliente") || pathname.startsWith("/mesa")) return "client";
   if (pathname.startsWith("/garcom") || pathname.startsWith("/atendimento")) return "waiter";
@@ -319,6 +339,10 @@ function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const [desktopConfigOpen, setDesktopConfigOpen] = useState(false);
+  const [desktopServerUrl, setDesktopServerUrl] = useState(api.baseUrl);
+  const [desktopConfigPassword, setDesktopConfigPassword] = useState("");
+  const [desktopConfigError, setDesktopConfigError] = useState("");
   const lastUpdateToastRef = useRef("");
 
   const reload = async () => {
@@ -370,17 +394,31 @@ function App() {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .login()
-      .then(reload)
-      .catch((err) => mounted && setError(err.message))
-      .finally(() => mounted && setLoading(false));
+    async function boot() {
+      try {
+        if (window.tavonDesktop?.getConfig) {
+          const config = await window.tavonDesktop.getConfig();
+          if (config.serverUrl) {
+            api.setBaseUrl(config.serverUrl);
+            setDesktopServerUrl(config.serverUrl);
+          }
+        }
+        await api.login();
+        await reload();
+      } catch (err) {
+        if (mounted) setError(err instanceof Error ? err.message : "Nao foi possivel conectar ao servidor");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    boot();
     return () => {
       mounted = false;
     };
   }, []);
 
   useEffect(() => {
+    if (loading || error) return;
     const socket = io(import.meta.env.VITE_SOCKET_URL || api.baseUrl, { transports: ["websocket", "polling"] });
 
     socket.on("order:new", (order: Order) => {
@@ -412,7 +450,7 @@ function App() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [loading, error]);
 
   useEffect(() => {
     if (!toast) return;
@@ -442,6 +480,25 @@ function App() {
     try { window.history.pushState({}, "", href); } catch { /* file:// context */ }
     setActivePage(getPageFromPathname(href));
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const saveDesktopServerConfig = async () => {
+    setDesktopConfigError("");
+    if (desktopConfigPassword !== "1234") {
+      setDesktopConfigError("Senha invalida");
+      return;
+    }
+    const normalizedUrl = desktopServerUrl.trim().replace(/\/+$/, "");
+    try {
+      if (window.tavonDesktop?.setConfig) {
+        await window.tavonDesktop.setConfig({ serverUrl: normalizedUrl });
+      }
+      api.setBaseUrl(normalizedUrl);
+      setDesktopConfigOpen(false);
+      setToast("Servidor configurado. Reabrindo conexao...");
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      setDesktopConfigError(err instanceof Error ? err.message : "Nao foi possivel salvar o servidor");
+    }
   };
   const showOperationalShell = activePage !== "client" && !desktopLockedPage;
 
@@ -483,6 +540,12 @@ function App() {
                 <Bell size={16} />
                 {openOrders} ativos
               </span>
+              {window.tavonDesktop?.isDesktop && (
+                <button className="ghost-button" onClick={() => setDesktopConfigOpen(true)}>
+                  <Settings2 size={17} />
+                  Servidor
+                </button>
+              )}
               <button
                 className="icon-button"
                 onClick={() =>
@@ -513,7 +576,12 @@ function App() {
         {error && (
           <div className="error-banner">
             <X size={18} />
-            {error}
+            <span>{error}</span>
+            {window.tavonDesktop?.isDesktop && (
+              <button className="ghost-button" onClick={() => setDesktopConfigOpen(true)}>
+                Configurar servidor
+              </button>
+            )}
           </div>
         )}
 
@@ -527,6 +595,14 @@ function App() {
                 dashboard={dashboard}
                 openOrders={openOrders}
                 navigate={navigate}
+              />
+            )}
+            {activePage === "server" && (
+              <ServerPanel
+                serverUrl={api.baseUrl}
+                onConfigure={() => setDesktopConfigOpen(true)}
+                onReload={reload}
+                onToast={setToast}
               />
             )}
             {activePage === "admin" && (
@@ -647,6 +723,37 @@ function App() {
             <span>{toast}</span>
           </div>
         )}
+        {desktopConfigOpen && (
+          <div className="dialog-backdrop">
+            <div className="dialog-panel desktop-config-dialog">
+              <button className="dialog-close" onClick={() => setDesktopConfigOpen(false)}>
+                <X size={20} />
+              </button>
+              <p className="eyebrow">Configuracao local</p>
+              <h2>Servidor usado por este app</h2>
+              <p className="muted-text">
+                Informe o endereco da maquina que roda o Tavon Servidor. Exemplo: http://192.168.0.10:3333
+              </p>
+              <label className="field">
+                Endereco do servidor
+                <input value={desktopServerUrl} onChange={(event) => setDesktopServerUrl(event.target.value)} />
+              </label>
+              <label className="field">
+                Senha
+                <input
+                  type="password"
+                  value={desktopConfigPassword}
+                  onChange={(event) => setDesktopConfigPassword(event.target.value)}
+                  placeholder="1234"
+                />
+              </label>
+              {desktopConfigError && <p className="inline-error">{desktopConfigError}</p>}
+              <button className="primary-button full" onClick={saveDesktopServerConfig}>
+                Salvar servidor
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -704,6 +811,71 @@ function LoadingScreen() {
       <div className="skeleton" />
       <div className="skeleton" />
     </div>
+  );
+}
+
+function ServerPanel(props: {
+  serverUrl: string;
+  onConfigure: () => void;
+  onReload: () => Promise<void>;
+  onToast: (message: string) => void;
+}) {
+  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<"online" | "offline" | "idle">("idle");
+
+  const checkServer = async () => {
+    setChecking(true);
+    try {
+      const response = await fetch(`${props.serverUrl}/health`);
+      setStatus(response.ok ? "online" : "offline");
+      props.onToast(response.ok ? "Servidor local online" : "Servidor respondeu com falha");
+      if (response.ok) await props.onReload();
+    } catch {
+      setStatus("offline");
+      props.onToast("Erro ao conectar no servidor local");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <section className="server-layout">
+      <div className="panel server-status-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Tavon Servidor</p>
+            <h2>API local da operacao</h2>
+          </div>
+          <span className={`status-badge ${status === "online" ? "open" : status === "offline" ? "cancelled" : "new"}`}>
+            {status === "online" ? "Online" : status === "offline" ? "Offline" : "Aguardando"}
+          </span>
+        </div>
+        <div className="server-url-box">
+          <Server size={22} />
+          <div>
+            <span>Endereco atual</span>
+            <strong>{props.serverUrl}</strong>
+          </div>
+        </div>
+        <div className="button-row">
+          <button className="primary-button" onClick={checkServer} disabled={checking}>
+            {checking ? "Testando..." : "Testar servidor"}
+          </button>
+          <button className="ghost-button" onClick={props.onConfigure}>
+            <Settings2 size={17} />
+            Configurar endereco
+          </button>
+        </div>
+      </div>
+      <div className="panel server-help-panel">
+        <p className="eyebrow">Uso recomendado</p>
+        <h3>Um computador roda o Servidor. Os outros apps apontam para ele.</h3>
+        <p>
+          Instale o Tavon Servidor no PC principal do restaurante e use o IP desse PC nos apps Cardapio, Garcom,
+          Cozinha e Caixa. A senha padrao para alterar essa configuracao e 1234.
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -2921,7 +3093,10 @@ function KitchenBoard(props: {
   const printTicket = async (order: Order) => {
     setPrintOrder(order);
     await props.onPrint(order);
-    window.setTimeout(() => window.print(), 80);
+    window.setTimeout(() => {
+      printThermalElement("[data-print-ticket='kitchen']")
+        .catch(() => window.print());
+    }, 120);
   };
 
   return (
@@ -3038,7 +3213,7 @@ function KitchenCard(props: {
 
 function ThermalOrderTicket({ order, products }: { order: Order; products: Product[] }) {
   return (
-    <article className="thermal-ticket print-only">
+    <article className="thermal-ticket print-only" data-print-ticket="kitchen">
       <h1>COZINHA</h1>
       <div className="thermal-row">
         <span>Mesa</span>
@@ -3073,7 +3248,7 @@ function ThermalOrderTicket({ order, products }: { order: Order; products: Produ
 
 function ThermalReceipt({ restaurant, check }: { restaurant: RestaurantSettings; check: CheckSummary }) {
   return (
-    <article className="thermal-ticket print-only">
+    <article className="thermal-ticket print-only" data-print-ticket="receipt">
       <h1>{restaurant.name}</h1>
       <p>COMPROVANTE DE CONSUMO</p>
       {check.ticket && <p>{check.ticket.number}</p>}
@@ -3218,6 +3393,10 @@ function CashierPanel(props: {
       syncCheckState(updated);
       await props.onReload();
       props.onToast("Comanda fechada");
+      window.setTimeout(() => {
+        printThermalElement("[data-print-ticket='receipt']")
+          .catch(() => undefined);
+      }, 160);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nao foi possivel fechar a comanda");
     }
@@ -3390,7 +3569,14 @@ function CashierPanel(props: {
               <CheckCircle2 size={18} />
               {check.status === "closed" ? "Comanda fechada" : hasPendingOrders ? "Aguardando entrega" : "Fechar comanda"}
             </button>
-            <button className="ghost-button full" onClick={() => window.print()}>
+            <button
+              className="ghost-button full"
+              onClick={() =>
+                printThermalElement("[data-print-ticket='receipt']")
+                  .then(() => props.onToast("Comprovante enviado para impressao"))
+                  .catch((err) => props.onToast(err instanceof Error ? err.message : "Falha ao imprimir comprovante"))
+              }
+            >
               <Printer size={17} />
               Reimprimir comprovante
             </button>
