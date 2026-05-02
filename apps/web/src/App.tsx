@@ -394,8 +394,8 @@ function App() {
             setDesktopServerUrl(config.serverUrl);
           }
         }
-        await api.login();
-        await reload();
+        const minDisplay = new Promise((r) => setTimeout(r, 1800));
+        await Promise.all([api.login().then(() => reload()), minDisplay]);
       } catch (err) {
         if (mounted) setError(err instanceof Error ? err.message : "Nao foi possivel conectar ao servidor");
       } finally {

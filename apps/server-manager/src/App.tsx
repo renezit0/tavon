@@ -104,9 +104,12 @@ export default function App() {
       setUptime(s.uptime);
     });
     window.tavonServer.getLogs().then(setLogs);
-    window.tavonServer.getConfig().then((cfg) => {
-      setConfig(cfg);
-      setDraft(cfg);
+    Promise.all([
+      window.tavonServer.getConfig(),
+      new Promise((r) => setTimeout(r, 1600))
+    ]).then(([cfg]) => {
+      setConfig(cfg as any);
+      setDraft(cfg as any);
       setReady(true);
     });
     window.tavonServer.getLocalIp().then(setLocalIp);
