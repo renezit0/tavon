@@ -15,7 +15,6 @@ import {
   QrCode,
   ReceiptText,
   Search,
-  Server,
   Settings2,
   ShoppingBag,
   Sparkles,
@@ -65,8 +64,8 @@ import {
 } from "@restaurant/shared";
 import { api } from "./api";
 
-type ModuleId = "server" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
-type PageId = "home" | "server" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
+type ModuleId = "admin" | "client" | "waiter" | "kitchen" | "cashier";
+type PageId = "home" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
 
 type CartItem = {
   cartId: string;
@@ -81,7 +80,6 @@ type CartItem = {
 };
 
 const moduleTabs: Array<{ id: ModuleId; label: string; icon: typeof LayoutDashboard }> = [
-  { id: "server", label: "Servidor", icon: Server },
   { id: "admin", label: "Admin", icon: LayoutDashboard },
   { id: "client", label: "Cliente", icon: Utensils },
   { id: "waiter", label: "Garçom", icon: ClipboardList },
@@ -90,13 +88,6 @@ const moduleTabs: Array<{ id: ModuleId; label: string; icon: typeof LayoutDashbo
 ];
 
 const routeLinks: Array<{ id: PageId; label: string; href: string; icon: typeof LayoutDashboard; description: string }> = [
-  {
-    id: "server",
-    label: "Servidor Local",
-    href: "/servidor",
-    icon: Server,
-    description: "Status da API local e configuracao do endereco usado pelos apps."
-  },
   {
     id: "admin",
     label: "Painel Administrativo",
@@ -302,7 +293,6 @@ function minutesSince(date: string) {
 }
 
 function getPageFromPathname(pathname: string): PageId {
-  if (pathname.startsWith("/servidor") || pathname.startsWith("/server")) return "server";
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/cardapio") || pathname.startsWith("/cliente") || pathname.startsWith("/mesa")) return "client";
   if (pathname.startsWith("/garcom") || pathname.startsWith("/atendimento")) return "waiter";
@@ -597,14 +587,6 @@ function App() {
                 navigate={navigate}
               />
             )}
-            {activePage === "server" && (
-              <ServerPanel
-                serverUrl={api.baseUrl}
-                onConfigure={() => setDesktopConfigOpen(true)}
-                onReload={reload}
-                onToast={setToast}
-              />
-            )}
             {activePage === "admin" && (
               <AdminPanel
                 restaurant={restaurant}
@@ -811,71 +793,6 @@ function LoadingScreen() {
       <div className="skeleton" />
       <div className="skeleton" />
     </div>
-  );
-}
-
-function ServerPanel(props: {
-  serverUrl: string;
-  onConfigure: () => void;
-  onReload: () => Promise<void>;
-  onToast: (message: string) => void;
-}) {
-  const [checking, setChecking] = useState(false);
-  const [status, setStatus] = useState<"online" | "offline" | "idle">("idle");
-
-  const checkServer = async () => {
-    setChecking(true);
-    try {
-      const response = await fetch(`${props.serverUrl}/health`);
-      setStatus(response.ok ? "online" : "offline");
-      props.onToast(response.ok ? "Servidor local online" : "Servidor respondeu com falha");
-      if (response.ok) await props.onReload();
-    } catch {
-      setStatus("offline");
-      props.onToast("Erro ao conectar no servidor local");
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  return (
-    <section className="server-layout">
-      <div className="panel server-status-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Tavon Servidor</p>
-            <h2>API local da operacao</h2>
-          </div>
-          <span className={`status-badge ${status === "online" ? "open" : status === "offline" ? "cancelled" : "new"}`}>
-            {status === "online" ? "Online" : status === "offline" ? "Offline" : "Aguardando"}
-          </span>
-        </div>
-        <div className="server-url-box">
-          <Server size={22} />
-          <div>
-            <span>Endereco atual</span>
-            <strong>{props.serverUrl}</strong>
-          </div>
-        </div>
-        <div className="button-row">
-          <button className="primary-button" onClick={checkServer} disabled={checking}>
-            {checking ? "Testando..." : "Testar servidor"}
-          </button>
-          <button className="ghost-button" onClick={props.onConfigure}>
-            <Settings2 size={17} />
-            Configurar endereco
-          </button>
-        </div>
-      </div>
-      <div className="panel server-help-panel">
-        <p className="eyebrow">Uso recomendado</p>
-        <h3>Um computador roda o Servidor. Os outros apps apontam para ele.</h3>
-        <p>
-          Instale o Tavon Servidor no PC principal do restaurante e use o IP desse PC nos apps Cardapio, Garcom,
-          Cozinha e Caixa. A senha padrao para alterar essa configuracao e 1234.
-        </p>
-      </div>
-    </section>
   );
 }
 

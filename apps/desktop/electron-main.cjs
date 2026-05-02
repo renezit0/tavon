@@ -5,15 +5,12 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
 const moduleRoutes = {
-  server: "/servidor",
   admin: "/admin",
   cardapio: "/cardapio?table=M01",
   garcom: "/garcom",
   cozinha: "/cozinha",
   caixa: "/caixa"
 };
-
-const modulesThatStartApi = new Set(["server", "admin"]);
 
 function resourcePath(...segments) {
   if (app.isPackaged) return path.join(process.resourcesPath, ...segments);
@@ -25,7 +22,6 @@ function inferModuleFromProductName() {
   if (metadataModule && moduleRoutes[metadataModule]) return metadataModule;
 
   const name = `${app.getName()} ${process.execPath}`.toLowerCase();
-  if (name.includes("server") || name.includes("servidor")) return "server";
   if (name.includes("admin")) return "admin";
   if (name.includes("cardapio") || name.includes("cardápio")) return "cardapio";
   if (name.includes("garcom") || name.includes("garçom")) return "garcom";
@@ -81,7 +77,7 @@ function resolveModuleName() {
 
 async function startApi() {
   if (process.env.WEB_URL) return;
-  if (!modulesThatStartApi.has(resolveModuleName())) return;
+  if (process.env.TAVON_START_EMBEDDED_API !== "1") return;
 
   process.env.API_HOST = process.env.API_HOST || "127.0.0.1";
   process.env.API_PORT = process.env.API_PORT || "3333";

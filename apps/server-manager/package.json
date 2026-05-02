@@ -1,6 +1,6 @@
 {
   "name": "@restaurant/server-manager",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "description": "Tavon Server Manager — gerencia o servidor backend da suite Tavon.",
   "author": "Tavon",
@@ -10,7 +10,8 @@
     "dev:ui": "vite --port 5181",
     "build": "tsc -p tsconfig.json && vite build",
     "dist:win": "npm run build && electron-builder --win nsis --x64",
-    "publish:win": "npm run build && electron-builder --win nsis --x64 --publish always"
+    "publish:win": "npm run build && electron-builder --win nsis --x64 --publish always",
+    "dist:mac": "npm run build && electron-builder --mac dmg --config.directories.output=../../release/mac --config.artifactName=Tavon-Server-\\${version}.dmg"
   },
   "build": {
     "appId": "com.tavon.restaurant.server",
@@ -42,6 +43,7 @@
         "to": "node_modules",
         "filter": [
           "**/*",
+          "!.bin{,/**/*}",
           "!electron{,/**/*}",
           "!electron-builder{,/**/*}",
           "!@electron{,/**/*}",
@@ -58,7 +60,10 @@
       {
         "from": "../../packages/shared",
         "to": "node_modules/@restaurant/shared",
-        "filter": ["dist/**/*", "package.json"]
+        "filter": [
+          "dist/**/*",
+          "package.json"
+        ]
       }
     ],
     "win": {
