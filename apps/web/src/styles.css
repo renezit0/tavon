@@ -209,6 +209,13 @@ b {
   gap: 16px;
 }
 
+.module-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .topbar {
   margin-bottom: 26px;
 }

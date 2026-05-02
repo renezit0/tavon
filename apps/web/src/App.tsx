@@ -654,6 +654,7 @@ function App() {
                 }}
                 onToast={setToast}
                 onReload={reload}
+                onConfigOpen={() => setDesktopConfigOpen(true)}
               />
             )}
             {activePage === "kitchen" && (
@@ -685,6 +686,7 @@ function App() {
                     setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o chamado");
                   }
                 }}
+                onConfigOpen={() => setDesktopConfigOpen(true)}
               />
             )}
             {activePage === "cashier" && (
@@ -694,6 +696,7 @@ function App() {
                 customerQrs={customerQrs}
                 onToast={setToast}
                 onReload={reload}
+                onConfigOpen={() => setDesktopConfigOpen(true)}
               />
             )}
           </>
@@ -2538,6 +2541,7 @@ function WaiterOrderPanel(props: {
   onResolveServiceCall: (callId: string) => Promise<void>;
   onToast: (message: string) => void;
   onReload: () => Promise<void>;
+  onConfigOpen?: () => void;
 }) {
   const [selectedTableId, setSelectedTableId] = useState(props.tables[0]?.id || "");
   const [selectedQrCode, setSelectedQrCode] = useState("");
@@ -2651,9 +2655,17 @@ function WaiterOrderPanel(props: {
           <p className="eyebrow">Atendimento</p>
           <h2>Pedido do garçom</h2>
         </div>
-        <div className="live-pill">
-          <ReceiptText size={16} />
-          {cartQuantity} {cartQuantity === 1 ? "item" : "itens"} · {formatCurrencyBRL(cartTotal)}
+        <div className="module-header-actions">
+          <div className="live-pill">
+            <ReceiptText size={16} />
+            {cartQuantity} {cartQuantity === 1 ? "item" : "itens"} · {formatCurrencyBRL(cartTotal)}
+          </div>
+          {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
+            <button className="ghost-button" onClick={props.onConfigOpen} title="Configurar servidor">
+              <Settings2 size={16} />
+              Servidor
+            </button>
+          )}
         </div>
       </div>
 
@@ -2991,6 +3003,7 @@ function KitchenBoard(props: {
   onStatusChange: (orderId: string, status: OrderStatus) => Promise<void>;
   onPrint: (order: Order) => Promise<void>;
   onResolveServiceCall: (callId: string) => Promise<void>;
+  onConfigOpen?: () => void;
 }) {
   const [sector, setSector] = useState("all");
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
@@ -3023,12 +3036,20 @@ function KitchenBoard(props: {
           <p className="eyebrow">Tela de preparo</p>
           <h2>Pedidos por status</h2>
         </div>
-        <div className="segmented">
-          {["all", "kitchen", "bar", "dessert"].map((item) => (
-            <button key={item} className={sector === item ? "active" : ""} onClick={() => setSector(item)}>
-              {sectorLabel(item)}
+        <div className="module-header-actions">
+          <div className="segmented">
+            {["all", "kitchen", "bar", "dessert"].map((item) => (
+              <button key={item} className={sector === item ? "active" : ""} onClick={() => setSector(item)}>
+                {sectorLabel(item)}
+              </button>
+            ))}
+          </div>
+          {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
+            <button className="ghost-button" onClick={props.onConfigOpen} title="Configurar servidor">
+              <Settings2 size={16} />
+              Servidor
             </button>
-          ))}
+          )}
         </div>
       </div>
 
@@ -3226,6 +3247,7 @@ function CashierPanel(props: {
   customerQrs: CustomerQr[];
   onToast: (message: string) => void;
   onReload: () => Promise<void>;
+  onConfigOpen?: () => void;
 }) {
   const checkCodeFromUrl = new URLSearchParams(window.location.search).get("check");
   const [code, setCode] = useState(checkCodeFromUrl || "");
@@ -3327,6 +3349,18 @@ function CashierPanel(props: {
 
   return (
     <section className="cashier-layout">
+      <div className="module-header">
+        <div>
+          <p className="eyebrow">Caixa</p>
+          <h2>Fechamento de comanda</h2>
+        </div>
+        {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
+          <button className="ghost-button" onClick={props.onConfigOpen} title="Configurar servidor">
+            <Settings2 size={16} />
+            Servidor
+          </button>
+        )}
+      </div>
       <div className="panel cashier-search">
         <div>
           <p className="eyebrow">Caixa</p>
