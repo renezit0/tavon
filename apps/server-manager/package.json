@@ -9,12 +9,19 @@
     "dev": "WEB_URL=http://localhost:5181 electron .",
     "dev:ui": "vite --port 5181",
     "build": "tsc -p tsconfig.json && vite build",
-    "dist:win": "npm run build && electron-builder --win nsis --x64 --config.productName=\"Tavon Server\" --config.appId=\"com.tavon.restaurant.server\" --config.artifactName=\"Tavon-Server-Setup-${version}.exe\"",
-    "publish:win": "npm run build && electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Server\" --config.appId=\"com.tavon.restaurant.server\" --config.artifactName=\"Tavon-Server-Setup-${version}.exe\" --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=server-v"
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "publish:win": "npm run build && electron-builder --win nsis --x64 --publish always"
   },
   "build": {
     "appId": "com.tavon.restaurant.server",
     "productName": "Tavon Server",
+    "artifactName": "Tavon-Server-Setup-${version}.exe",
+    "publish": {
+      "provider": "github",
+      "owner": "renezit0",
+      "repo": "tavon",
+      "tagNamePrefix": "server-v"
+    },
     "directories": {
       "output": "../../release/windows"
     },
