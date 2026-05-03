@@ -148,75 +148,41 @@ function createWindow() {
 function setupAutoUpdates(mainWindow) {
   if (!app.isPackaged || process.env.TAVON_DISABLE_AUTO_UPDATE === "1") return;
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // Never download automatically — renderer controls the flow
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  const send = (payload) => {
+    if (!mainWindow.isDestroyed()) mainWindow.webContents.send("updates:status", payload);
+  };
 
   autoUpdater.on("checking-for-update", () => {
-    mainWindow.webContents.send("updates:status", {
-      status: "checking",
-      message: "Verificando atualizacoes"
-    });
+    send({ status: "checking", message: "Verificando atualizacoes..." });
   });
 
   autoUpdater.on("update-available", (info) => {
-    mainWindow.webContents.send("updates:status", {
-      status: "available",
-      version: info.version,
-      message: `Atualizacao ${info.version} encontrada`
-    });
+    send({ status: "available", version: info.version, releaseNotes: info.releaseNotes || "" });
   });
 
   autoUpdater.on("update-not-available", () => {
-    mainWindow.webContents.send("updates:status", {
-      status: "idle",
-      message: "Aplicativo atualizado"
-    });
+    send({ status: "idle", message: "Aplicativo ja esta atualizado." });
   });
 
   autoUpdater.on("error", (error) => {
-    mainWindow.webContents.send("updates:status", {
-      status: "error",
-      message: error?.message || "Falha ao verificar atualizacao"
-    });
+    send({ status: "error", message: error?.message || "Falha ao verificar atualizacao." });
   });
 
   autoUpdater.on("download-progress", (progress) => {
-    mainWindow.webContents.send("updates:status", {
-      status: "downloading",
-      percent: Math.round(progress.percent || 0),
-      message: `Baixando atualizacao ${Math.round(progress.percent || 0)}%`
-    });
+    send({ status: "downloading", percent: Math.round(progress.percent || 0) });
   });
 
-  autoUpdater.on("update-downloaded", async (info) => {
-    mainWindow.webContents.send("updates:status", {
-      status: "downloaded",
-      version: info.version,
-      message: `Atualizacao ${info.version} pronta`
-    });
-
-    const response = await dialog.showMessageBox(mainWindow, {
-      type: "info",
-      buttons: ["Reiniciar agora", "Depois"],
-      defaultId: 0,
-      cancelId: 1,
-      title: "Atualizacao pronta",
-      message: `A versao ${info.version} foi baixada.`,
-      detail: "Reinicie o aplicativo para aplicar a atualizacao."
-    });
-
-    if (response.response === 0) {
-      autoUpdater.quitAndInstall(false, true);
-    }
+  autoUpdater.on("update-downloaded", (info) => {
+    send({ status: "downloaded", version: info.version });
   });
 
-  setTimeout(() => {
-    autoUpdater.checkForUpdates().catch(() => undefined);
-  }, 8000);
-
-  setInterval(() => {
-    autoUpdater.checkForUpdates().catch(() => undefined);
-  }, 30 * 60 * 1000);
+  // First check 10 s after startup, then every 30 min
+  setTimeout(() => autoUpdater.checkForUpdates().catch(() => undefined), 10000);
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => undefined), 30 * 60 * 1000);
 }
 
 ipcMain.handle("printers:list", async (event) => {
@@ -296,14 +262,15 @@ ipcMain.handle("print:silent", async (event, input = {}) => {
 
 ipcMain.handle("updates:check", async () => {
   if (!app.isPackaged) {
-    return { status: "disabled", message: "Atualizacao automatica disponivel apenas no app instalado" };
+    return { status: "dev", message: "Atualizacao automatica disponivel apenas no app instalado." };
   }
+  autoUpdater.checkForUpdates().catch(() => undefined);
+  return { status: "checking" };
+});
 
-  const result = await autoUpdater.checkForUpdates();
-  return {
-    status: result?.updateInfo ? "ok" : "idle",
-    version: result?.updateInfo?.version
-  };
+ipcMain.handle("updates:download", async () => {
+  if (!app.isPackaged) return;
+  autoUpdater.downloadUpdate().catch(() => undefined);
 });
 
 ipcMain.handle("updates:install", () => {

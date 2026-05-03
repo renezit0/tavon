@@ -336,6 +336,16 @@ function App() {
   const [desktopConfigError, setDesktopConfigError] = useState("");
   const lastUpdateToastRef = useRef("");
 
+  // ── Auto-update state ──
+  type UpdateStatus = {
+    status: "idle" | "dev" | "checking" | "available" | "downloading" | "downloaded" | "error";
+    version?: string;
+    percent?: number;
+    message?: string;
+  };
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: "idle" });
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+
   const reload = async () => {
     setError("");
     const [menu, dash, tableList, orderList, printerList, customerQrList, ticketList, callList, logs] = await Promise.all([
@@ -442,6 +452,17 @@ function App() {
       socket.disconnect();
     };
   }, [loading, error]);
+
+  // ── Electron auto-update listener ──
+  useEffect(() => {
+    if (!window.tavonDesktop?.onUpdateStatus) return;
+    const off = window.tavonDesktop.onUpdateStatus((payload: UpdateStatus) => {
+      setUpdateStatus(payload);
+      if (payload.status === "available") setUpdateModalOpen(true);
+      if (payload.status === "downloaded") setUpdateModalOpen(true);
+    });
+    return off;
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -799,6 +820,97 @@ function App() {
                     </button>
                     <button className="checkout-button" onClick={saveDesktopServerConfig}>
                       Salvar
+                    </button>
+                  </div>
+                  {/* Update button — accessible after unlock */}
+                  <div className="desktop-config-update-row">
+                    <button
+                      className="ghost-button full"
+                      onClick={async () => {
+                        setUpdateStatus({ status: "checking" });
+                        await window.tavonDesktop?.checkForUpdates();
+                      }}
+                      disabled={updateStatus.status === "checking" || updateStatus.status === "downloading"}
+                    >
+                      {updateStatus.status === "checking" ? "Verificando..." :
+                       updateStatus.status === "downloading" ? `Baixando ${updateStatus.percent ?? 0}%...` :
+                       updateStatus.status === "downloaded" ? "Atualização pronta — Reiniciar" :
+                       "Verificar atualizações"}
+                    </button>
+                    {updateStatus.status === "idle" && updateStatus.message && (
+                      <small>{updateStatus.message}</small>
+                    )}
+                    {updateStatus.status === "error" && (
+                      <small className="update-error-text">{updateStatus.message}</small>
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* ── Update modal ── */}
+        {updateModalOpen && (updateStatus.status === "available" || updateStatus.status === "downloading" || updateStatus.status === "downloaded") && (
+          <div className="service-confirm-backdrop">
+            <section className="update-modal" role="dialog" aria-modal="true">
+              {updateStatus.status === "available" && (
+                <>
+                  <div className="update-modal-icon available">
+                    <svg viewBox="0 0 40 40" fill="none">
+                      <circle cx="20" cy="20" r="19" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M20 10v14M13 18l7 7 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p className="eyebrow">Nova versao disponivel</p>
+                  <h3>Tavon v{updateStatus.version}</h3>
+                  <p>Uma nova versao do aplicativo esta disponivel. Deseja baixar e instalar agora?</p>
+                  <div className="update-modal-actions">
+                    <button className="ghost-button" onClick={() => setUpdateModalOpen(false)}>
+                      Agora nao
+                    </button>
+                    <button className="checkout-button" onClick={() => {
+                      setUpdateStatus((s) => ({ ...s, status: "downloading", percent: 0 }));
+                      window.tavonDesktop?.downloadUpdate();
+                    }}>
+                      Instalar
+                    </button>
+                  </div>
+                </>
+              )}
+              {updateStatus.status === "downloading" && (
+                <>
+                  <div className="update-modal-icon downloading">
+                    <svg viewBox="0 0 40 40" fill="none">
+                      <circle cx="20" cy="20" r="19" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3"/>
+                      <path d="M20 13v12M14 20l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p className="eyebrow">Baixando atualizacao</p>
+                  <h3>v{updateStatus.version}</h3>
+                  <div className="update-progress-bar">
+                    <div className="update-progress-fill" style={{ width: `${updateStatus.percent ?? 0}%` }} />
+                  </div>
+                  <p>{updateStatus.percent ?? 0}% concluido</p>
+                </>
+              )}
+              {updateStatus.status === "downloaded" && (
+                <>
+                  <div className="update-modal-icon ready">
+                    <svg viewBox="0 0 40 40" fill="none">
+                      <circle cx="20" cy="20" r="19" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M13 21l5 5 10-11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p className="eyebrow">Pronto para instalar</p>
+                  <h3>Tavon v{updateStatus.version}</h3>
+                  <p>A atualizacao foi baixada. O aplicativo sera reiniciado para aplicar.</p>
+                  <div className="update-modal-actions">
+                    <button className="ghost-button" onClick={() => setUpdateModalOpen(false)}>
+                      Depois
+                    </button>
+                    <button className="checkout-button" onClick={() => window.tavonDesktop?.installUpdate()}>
+                      Reiniciar agora
                     </button>
                   </div>
                 </>

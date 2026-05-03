@@ -9,7 +9,8 @@
     "dev": "WEB_URL=http://localhost:5180 electron .",
     "build:app": "npm run build -w @restaurant/shared && npm run build -w @restaurant/api && npm run build -w @restaurant/web",
     "dist:win": "npm run dist:win:all",
-    "dist:win:all": "npm run build:app && npm run dist:win:admin:only && npm run dist:win:cardapio:only && npm run dist:win:garcom:only && npm run dist:win:cozinha:only && npm run dist:win:caixa:only",
+    "gen:installer-assets": "node generate-installer-assets.js",
+    "dist:win:all": "npm run gen:installer-assets && npm run build:app && npm run dist:win:admin:only && npm run dist:win:cardapio:only && npm run dist:win:garcom:only && npm run dist:win:cozinha:only && npm run dist:win:caixa:only",
     "dist:win:admin": "npm run build:app && npm run dist:win:admin:only",
     "dist:win:cardapio": "npm run build:app && npm run dist:win:cardapio:only",
     "dist:win:garcom": "npm run build:app && npm run dist:win:garcom:only",
@@ -98,12 +99,17 @@
       "icon": "build/icon.png"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
       "perMachine": false,
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "installerSidebar": "build/installer/sidebar.bmp",
+      "uninstallerSidebar": "build/installer/sidebar.bmp",
+      "installerHeader": "build/installer/header.bmp",
+      "include": "build/installer/custom.nsh"
     }
   },
   "dependencies": {
