@@ -667,6 +667,7 @@ function App() {
                 tables={tables}
                 customerQrs={customerQrs}
                 serviceCalls={serviceCalls}
+                orders={orders}
                 onOrder={(order) => {
                   setOrders((current) => [order, ...current.filter((item) => item.id !== order.id)]);
                   setToast(`Pedido ${order.checkCode} lançado para ${order.tableName}`);
@@ -678,6 +679,15 @@ function App() {
                     setToast(`Chamado de ${call.tableName} atendido`);
                   } catch (err) {
                     setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o chamado");
+                  }
+                }}
+                onOrderStatusChange={async (orderId, status) => {
+                  try {
+                    const order = await api.updateOrderStatus(orderId, status);
+                    setOrders((current) => current.map((item) => (item.id === order.id ? order : item)));
+                    setToast(`${order.tableName} · ${order.checkCode} marcado como ${ORDER_STATUS_LABEL[status]}`);
+                  } catch (err) {
+                    setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o pedido");
                   }
                 }}
                 onToast={setToast}
@@ -2624,8 +2634,10 @@ function WaiterOrderPanel(props: {
   tables: Table[];
   customerQrs: CustomerQr[];
   serviceCalls: ServiceCall[];
+  orders: Order[];
   onOrder: (order: Order) => void;
   onResolveServiceCall: (callId: string) => Promise<void>;
+  onOrderStatusChange: (orderId: string, status: OrderStatus) => Promise<void>;
   onToast: (message: string) => void;
   onReload: () => Promise<void>;
   onConfigOpen?: () => void;
@@ -2643,6 +2655,7 @@ function WaiterOrderPanel(props: {
   const currentTable = props.tables.find((table) => table.id === selectedTableId);
   const activeChecks = props.customerQrs.filter((qr) => qr.status === "in_use" && qr.currentCheckCode);
   const openServiceCalls = props.serviceCalls.filter((call) => call.status === "open");
+  const readyOrders = props.orders.filter((order) => order.status === "ready");
   const assignableQrs = props.customerQrs.filter(
     (qr) => qr.status !== "inactive" && (qr.status !== "in_use" || qr.currentTableId === selectedTableId)
   );
@@ -2735,6 +2748,8 @@ function WaiterOrderPanel(props: {
     }
   };
 
+  const hasAlerts = openServiceCalls.length > 0 || readyOrders.length > 0;
+
   return (
     <section className="waiter-layout">
       <div className="module-header">
@@ -2754,6 +2769,63 @@ function WaiterOrderPanel(props: {
           )}
         </div>
       </div>
+
+      {/* ── Alerts strip: chamados + pedidos prontos ── */}
+      {hasAlerts && (
+        <div className="waiter-alerts-strip">
+          {openServiceCalls.length > 0 && (
+            <div className="waiter-alert-section waiter-alert-calls">
+              <div className="waiter-alert-label">
+                <Bell size={15} />
+                <span>Chamados</span>
+                <strong>{openServiceCalls.length}</strong>
+              </div>
+              <div className="waiter-alert-chips">
+                {openServiceCalls.map((call) => (
+                  <button
+                    key={call.id}
+                    className="waiter-alert-chip call-chip"
+                    onClick={() => props.onResolveServiceCall(call.id)}
+                    title="Toque para marcar atendido"
+                  >
+                    <Bell size={14} />
+                    <span>{call.tableName}</span>
+                    <small>{call.message} · {new Date(call.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {openServiceCalls.length > 0 && readyOrders.length > 0 && (
+            <div className="waiter-alert-divider" />
+          )}
+
+          {readyOrders.length > 0 && (
+            <div className="waiter-alert-section waiter-alert-ready">
+              <div className="waiter-alert-label">
+                <CheckCircle2 size={15} />
+                <span>Prontos</span>
+                <strong>{readyOrders.length}</strong>
+              </div>
+              <div className="waiter-alert-chips">
+                {readyOrders.map((order) => (
+                  <button
+                    key={order.id}
+                    className="waiter-alert-chip ready-chip"
+                    onClick={() => props.onOrderStatusChange(order.id, "delivered")}
+                    title="Toque para marcar entregue"
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>{order.tableName}</span>
+                    <small>{order.checkCode} · {order.items.reduce((s, i) => s + i.quantity, 0)} {order.items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "itens"}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="waiter-shell">
         <aside className="panel waiter-command-panel">
@@ -2831,25 +2903,6 @@ function WaiterOrderPanel(props: {
               ))}
             </div>
           )}
-
-          <div className="service-call-list">
-            <div className="service-call-heading">
-              <div>
-                <p className="eyebrow">Chamados</p>
-                <strong>Atendimento da mesa</strong>
-              </div>
-              <span>{openServiceCalls.length}</span>
-            </div>
-            {openServiceCalls.length === 0 && <span className="empty-state">Nenhum chamado aberto.</span>}
-            {openServiceCalls.map((call) => (
-              <button key={call.id} onClick={() => props.onResolveServiceCall(call.id)}>
-                <Bell size={20} />
-                <span>{call.tableName}</span>
-                <strong>{call.message}</strong>
-                <small>{new Date(call.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · Toque para marcar atendido</small>
-              </button>
-            ))}
-          </div>
 
           <div className="waiter-cart">
             <div className="panel-heading compact-heading">
