@@ -8,6 +8,8 @@
     "apps/desktop",
     "apps/web",
     "apps/server-manager",
+    "apps/license-api",
+    "apps/license-manager",
     "packages/shared"
   ],
   "scripts": {

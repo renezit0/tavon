@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ativação Tavon</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0e0e10;
+      --surface:   #16181b;
+      --surface2:  #1e2023;
+      --line:      #2a2d32;
+      --gold:      #b9a784;
+      --gold-dim:  #8a7a60;
+      --text:      #eae6df;
+      --text-dim:  #8a8a94;
+      --red:       #e05c5c;
+      --green:     #4caf78;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+    }
+
+    /* ── Header ── */
+    .card-header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      padding: 28px 32px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-wrap {
+      width: 180px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: brightness(1.1);
+    }
+
+    .gold-bar {
+      width: 40px;
+      height: 2px;
+      background: var(--gold);
+      border-radius: 1px;
+      opacity: 0.7;
+    }
+
+    .card-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .card-header p {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+      max-width: 300px;
+    }
+
+    /* ── Body ── */
+    .card-body {
+      padding: 28px 32px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Module badge ── */
+    .module-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(185,167,132,0.1);
+      border: 1px solid rgba(185,167,132,0.25);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      align-self: flex-start;
+    }
+
+    .module-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+
+    /* ── Input group ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      letter-spacing: 0.02em;
+    }
+
+    .field input::placeholder { color: var(--text-dim); opacity: 0.6; }
+
+    .field input:focus {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 3px rgba(185,167,132,0.1);
+    }
+
+    /* ── Error / success ── */
+    .msg {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .msg.error   { display: flex; background: rgba(224,92,92,0.10); border: 1px solid rgba(224,92,92,0.25); color: var(--red); }
+    .msg.success { display: flex; background: rgba(76,175,120,0.10); border: 1px solid rgba(76,175,120,0.25); color: var(--green); }
+    .msg.warn    { display: flex; background: rgba(185,167,132,0.10); border: 1px solid rgba(185,167,132,0.25); color: var(--gold); }
+
+    .msg-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+    /* ── Button ── */
+    .btn-primary {
+      width: 100%;
+      padding: 13px 20px;
+      background: var(--gold);
+      color: #0e0e10;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(14,14,16,0.3);
+      border-top-color: #0e0e10;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer link ── */
+    .footer-link {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .footer-link button {
+      background: none;
+      border: none;
+      color: var(--gold-dim);
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .footer-link button:hover { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="logo-wrap">
+        <img src="build/tavonlogowhite.png" alt="Tavon" draggable="false" />
+      </div>
+      <div class="gold-bar"></div>
+      <h2>Ativar licença</h2>
+      <p>Insira a chave de licença fornecida pela Tavon para ativar este aplicativo.</p>
+    </div>
+
+    <div class="card-body">
+      <div class="module-badge" id="moduleBadge">Carregando...</div>
+
+      <div class="field">
+        <label for="licenseKey">Chave de licença</label>
+        <input
+          id="licenseKey"
+          type="text"
+          placeholder="TVN-XXXXXX-XXXXXX-XXXXXX"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="25"
+        />
+      </div>
+
+      <div class="msg" id="msg">
+        <span class="msg-icon" id="msgIcon"></span>
+        <span id="msgText"></span>
+      </div>
+
+      <button class="btn-primary" id="btnActivate" onclick="activate()">
+        Ativar
+      </button>
+
+      <div class="footer-link">
+        Não tem uma chave?
+        <button onclick="openSupport()">Fale com o suporte</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const input    = document.getElementById("licenseKey");
+    const btn      = document.getElementById("btnActivate");
+    const msgEl    = document.getElementById("msg");
+    const msgText  = document.getElementById("msgText");
+    const msgIcon  = document.getElementById("msgIcon");
+    const badge    = document.getElementById("moduleBadge");
+
+    const MODULE_LABELS = {
+      admin:    "Admin",
+      cardapio: "Cardápio",
+      garcom:   "Garçom",
+      cozinha:  "Cozinha",
+      caixa:    "Caixa",
+      totem:    "Totem",
+      all:      "Suite completa"
+    };
+
+    // Load module name
+    window.tavonLicense.getModule().then(mod => {
+      badge.textContent = MODULE_LABELS[mod] || mod;
+    });
+
+    // Format key as user types
+    input.addEventListener("input", () => {
+      let v = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const parts = [];
+      if (v.length > 0)  parts.push(v.slice(0, 3));
+      if (v.length > 3)  parts.push(v.slice(3, 9));
+      if (v.length > 9)  parts.push(v.slice(9, 15));
+      if (v.length > 15) parts.push(v.slice(15, 21));
+      input.value = parts.join("-");
+      clearMsg();
+    });
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") activate();
+    });
+
+    function showMsg(type, icon, text) {
+      msgEl.className = "msg " + type;
+      msgIcon.textContent = icon;
+      msgText.textContent = text;
+    }
+
+    function clearMsg() {
+      msgEl.className = "msg";
+    }
+
+    async function activate() {
+      const key = input.value.trim();
+      if (!key) { showMsg("error", "⚠", "Informe a chave de licença."); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Verificando...`;
+      clearMsg();
+
+      try {
+        const result = await window.tavonLicense.validate(key);
+        if (result.valid) {
+          showMsg("success", "✓", `Licença ativada com sucesso! Bem-vindo, ${result.client_name || ""}!`);
+          btn.innerHTML = "✓ Ativado";
+          // Main process closes this window and opens the app
+        } else {
+          showMsg("error", "✕", result.reason || "Licença inválida.");
+          btn.disabled = false;
+          btn.innerHTML = "Ativar";
+        }
+      } catch (err) {
+        showMsg("error", "⚠", "Não foi possível conectar ao servidor de licenças. Verifique sua conexão.");
+        btn.disabled = false;
+        btn.innerHTML = "Tentar novamente";
+      }
+    }
+
+    function openSupport() {
+      window.tavonLicense.openSupport();
+    }
+  </script>
+</body>
+</html>
