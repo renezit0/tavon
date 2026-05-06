@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, net } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -125,31 +125,20 @@ function getMachineId(config) {
 }
 
 // ─── Online license validation ──────────────────────────────────────────────
-function validateLicenseOnline(licenseKey, moduleName, machineId) {
-  return new Promise((resolve, reject) => {
-    const body = Buffer.from(JSON.stringify({
+async function validateLicenseOnline(licenseKey, moduleName, machineId) {
+  const res = await fetch(`${TAVON_LICENSE_URL}/licenses/validate`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({
       license_key: licenseKey,
       module:      moduleName,
       machine_id:  machineId,
       hostname:    os.hostname(),
       platform:    os.platform()
-    }));
-
-    const req = net.request({
-      method:  "POST",
-      url:     `${TAVON_LICENSE_URL}/licenses/validate`,
-      headers: { "Content-Type": "application/json", "Content-Length": body.length }
-    });
-
-    let data = "";
-    req.on("response", (res) => {
-      res.on("data",  chunk => { data += chunk; });
-      res.on("end",   ()    => { try { resolve(JSON.parse(data)); } catch { reject(new Error("Resposta invalida")); } });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
+    })
   });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 // ─── License gate ───────────────────────────────────────────────────────────
@@ -231,9 +220,9 @@ function createLicenseWindow(moduleName, onActivated) {
   licenseWindow.on("closed", () => { licenseWindow = null; });
 
   // IPC from license window
-  ipcMain.handleOnce("license:getModule",  () => moduleName);
-  ipcMain.handleOnce("license:openSupport", () => shell.openExternal("https://tavon.com.br/suporte"));
-  ipcMain.handleOnce("license:validate", async (_ev, key) => {
+  ipcMain.handle("license:getModule",   () => moduleName);
+  ipcMain.handle("license:openSupport", () => shell.openExternal("https://tavon.com.br/suporte"));
+  ipcMain.handle("license:validate", async (_ev, key) => {
     const config    = readConfig();
     const machineId = getMachineId(config);
     const result    = await validateLicenseOnline(key, moduleName, machineId);
@@ -252,8 +241,10 @@ function createLicenseWindow(moduleName, onActivated) {
       };
       writeConfig({ ...config, license });
 
-      // Give the UI a moment to show success, then open app
       setTimeout(() => {
+        ipcMain.removeHandler("license:getModule");
+        ipcMain.removeHandler("license:openSupport");
+        ipcMain.removeHandler("license:validate");
         if (licenseWindow && !licenseWindow.isDestroyed()) licenseWindow.close();
         onActivated();
       }, 1400);
