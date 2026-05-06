@@ -1,6 +1,6 @@
 {
   "name": "@restaurant/desktop",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "private": true,
   "description": "Electron wrapper for the Restaurant QR Suite web build.",
   "author": "Tavon",
@@ -11,6 +11,9 @@
     "dist:win": "npm run dist:win:all",
     "gen:installer-assets": "node generate-installer-assets.js",
     "dist:win:all": "npm run gen:installer-assets && npm run build:app && npm run dist:win:admin:only && npm run dist:win:cardapio:only && npm run dist:win:garcom:only && npm run dist:win:cozinha:only && npm run dist:win:caixa:only",
+    "dist:win:universal": "npm run gen:installer-assets && npm run build:app && npm run dist:win:universal:only",
+    "dist:win:universal:only": "electron-builder --win nsis --x64 --config.productName=\"Tavon Suite\" --config.appId=\"com.tavon.restaurant.suite\" --config.artifactName=\"Tavon-Suite-Setup-\\${version}.exe\" --config.win.icon=build/icons/admin.ico --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=suite-v",
+    "build:universal": "node build-universal.js",
     "dist:win:admin": "npm run build:app && npm run dist:win:admin:only",
     "dist:win:cardapio": "npm run build:app && npm run dist:win:cardapio:only",
     "dist:win:garcom": "npm run build:app && npm run dist:win:garcom:only",
@@ -43,7 +46,13 @@
     "publish:win:cardapio:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Cardapio\" --config.appId=\"com.tavon.restaurant.cardapio\" --config.artifactName=\"Tavon-Cardapio-Setup-\\${version}.exe\" --config.extraMetadata.tavonModule=cardapio --config.win.icon=build/icons/cardapio.ico --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=cardapio-v",
     "publish:win:garcom:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Garcom\" --config.appId=\"com.tavon.restaurant.garcom\" --config.artifactName=\"Tavon-Garcom-Setup-\\${version}.exe\" --config.extraMetadata.tavonModule=garcom --config.win.icon=build/icons/garcom.ico --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=garcom-v",
     "publish:win:cozinha:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Cozinha\" --config.appId=\"com.tavon.restaurant.cozinha\" --config.artifactName=\"Tavon-Cozinha-Setup-\\${version}.exe\" --config.extraMetadata.tavonModule=cozinha --config.win.icon=build/icons/cozinha.ico --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=cozinha-v",
-    "publish:win:caixa:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Caixa\" --config.appId=\"com.tavon.restaurant.caixa\" --config.artifactName=\"Tavon-Caixa-Setup-\\${version}.exe\" --config.extraMetadata.tavonModule=caixa --config.win.icon=build/icons/caixa.ico --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=caixa-v"
+    "publish:win:caixa:only": "electron-builder --win nsis --x64 --publish always --config.productName=\"Tavon Caixa\" --config.appId=\"com.tavon.restaurant.caixa\" --config.artifactName=\"Tavon-Caixa-Setup-\\${version}.exe\" --config.extraMetadata.tavonModule=caixa --config.win.icon=build/icons/caixa.ico --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=caixa-v",
+    "publish:mac:all": "npm run publish:mac:admin:only && npm run publish:mac:cardapio:only && npm run publish:mac:garcom:only && npm run publish:mac:cozinha:only && npm run publish:mac:caixa:only",
+    "publish:mac:admin:only": "electron-builder --mac dmg --publish always --config.directories.output=../../release/mac --config.productName=\"Tavon Admin\" --config.appId=\"com.tavon.restaurant.admin\" --config.artifactName=\"Tavon-Admin-\\${version}.dmg\" --config.extraMetadata.tavonModule=admin --config.mac.icon=build/icons/admin.icns --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=admin-v",
+    "publish:mac:cardapio:only": "electron-builder --mac dmg --publish always --config.directories.output=../../release/mac --config.productName=\"Tavon Cardapio\" --config.appId=\"com.tavon.restaurant.cardapio\" --config.artifactName=\"Tavon-Cardapio-\\${version}.dmg\" --config.extraMetadata.tavonModule=cardapio --config.mac.icon=build/icons/cardapio.icns --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=cardapio-v",
+    "publish:mac:garcom:only": "electron-builder --mac dmg --publish always --config.directories.output=../../release/mac --config.productName=\"Tavon Garcom\" --config.appId=\"com.tavon.restaurant.garcom\" --config.artifactName=\"Tavon-Garcom-\\${version}.dmg\" --config.extraMetadata.tavonModule=garcom --config.mac.icon=build/icons/garcom.icns --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=garcom-v",
+    "publish:mac:cozinha:only": "electron-builder --mac dmg --publish always --config.directories.output=../../release/mac --config.productName=\"Tavon Cozinha\" --config.appId=\"com.tavon.restaurant.cozinha\" --config.artifactName=\"Tavon-Cozinha-\\${version}.dmg\" --config.extraMetadata.tavonModule=cozinha --config.mac.icon=build/icons/cozinha.icns --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=cozinha-v",
+    "publish:mac:caixa:only": "electron-builder --mac dmg --publish always --config.directories.output=../../release/mac --config.productName=\"Tavon Caixa\" --config.appId=\"com.tavon.restaurant.caixa\" --config.artifactName=\"Tavon-Caixa-\\${version}.dmg\" --config.extraMetadata.tavonModule=caixa --config.mac.icon=build/icons/caixa.icns --config.publish.provider=github --config.publish.owner=renezit0 --config.publish.repo=tavon --config.publish.tagNamePrefix=caixa-v"
   },
   "build": {
     "appId": "com.tavon.restaurant.desktop",
@@ -55,7 +64,10 @@
       "electron-main.cjs",
       "preload.cjs",
       "package.json",
-      "build/**/*"
+      "build/**/*",
+      "license-window.html",
+      "license-preload.cjs",
+      "build/tavonlogowhite.png"
     ],
     "extraResources": [
       {
@@ -118,6 +130,7 @@
   "devDependencies": {
     "electron": "35.0.0",
     "electron-builder": "26.8.1",
-    "png-to-ico": "^3.0.1"
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.33.5"
   }
 }

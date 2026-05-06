@@ -56,9 +56,19 @@ console.log(`✓  NSIS script written: ${path.relative(DESKTOP_DIR, NSI_OUT)}`);
 
 // ── Find makensis ──────────────────────────────────────────────────────────────
 function findMakensis() {
-  // Try PATH first
+  // Try PATH first (with shell so it picks up .zshrc / .bashrc paths)
   const fromPath = spawnSync("makensis", ["--version"], { shell: true });
   if (fromPath.status === 0) return "makensis";
+
+  // Common macOS/Linux locations (Homebrew)
+  const unixPaths = [
+    "/opt/homebrew/bin/makensis",   // Apple Silicon
+    "/usr/local/bin/makensis",       // Intel Mac
+    "/usr/bin/makensis",
+  ];
+  for (const p of unixPaths) {
+    if (fs.existsSync(p)) return p;
+  }
 
   // Common Windows install location
   const winPaths = [
