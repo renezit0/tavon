@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || "http://69.6.213.99:4444";
+const BASE = import.meta.env.VITE_API_URL || "https://tavonapi.seellbr.com";
 
 function getToken() {
   return localStorage.getItem("tvn_license_token") || "";
