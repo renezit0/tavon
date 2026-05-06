@@ -1,15 +1,23 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, net } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const os = require("node:os");
+const crypto = require("node:crypto");
+
+// ─── License constants ──────────────────────────────────────────────────────
+const TAVON_LICENSE_URL = (process.env.TAVON_LICENSE_URL || "https://tavonapi.seellbr.com").replace(/\/+$/, "");
+const LICENSE_GRACE_DAYS        = 7;   // days offline before blocking
+const LICENSE_CHECK_INTERVAL_H  = 24;  // re-validate online every N hours
 
 const moduleRoutes = {
   admin: "/admin",
   cardapio: "/cardapio?table=M01",
   garcom: "/garcom",
   cozinha: "/cozinha",
-  caixa: "/caixa"
+  caixa: "/caixa",
+  totem: "/totem"
 };
 
 function resourcePath(...segments) {
@@ -18,9 +26,18 @@ function resourcePath(...segments) {
 }
 
 function inferModuleFromProductName() {
+  // 1. CLI arg: --module=admin  (used by universal installer shortcuts)
+  const cliArg = process.argv.find(a => a.startsWith("--module="));
+  if (cliArg) {
+    const mod = cliArg.split("=")[1].toLowerCase();
+    if (moduleRoutes[mod]) return mod;
+  }
+
+  // 2. package.json tavonModule field (module-specific builds)
   const metadataModule = readPackageMetadata().tavonModule;
   if (metadataModule && moduleRoutes[metadataModule]) return metadataModule;
 
+  // 3. Executable / product name heuristic
   const name = `${app.getName()} ${process.execPath}`.toLowerCase();
   if (name.includes("admin")) return "admin";
   if (name.includes("cardapio") || name.includes("cardápio")) return "cardapio";
@@ -100,14 +117,161 @@ async function startApi() {
   await import(pathToFileURL(apiPath).href);
 }
 
+// ─── Machine fingerprint ────────────────────────────────────────────────────
+function getMachineId(config) {
+  if (config.machine_id) return config.machine_id;
+  const raw = `${os.hostname()}-${os.platform()}-${os.arch()}-${(os.cpus()[0] || {}).model || ""}`;
+  return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 32);
+}
+
+// ─── Online license validation ──────────────────────────────────────────────
+function validateLicenseOnline(licenseKey, moduleName, machineId) {
+  return new Promise((resolve, reject) => {
+    const body = Buffer.from(JSON.stringify({
+      license_key: licenseKey,
+      module:      moduleName,
+      machine_id:  machineId,
+      hostname:    os.hostname(),
+      platform:    os.platform()
+    }));
+
+    const req = net.request({
+      method:  "POST",
+      url:     `${TAVON_LICENSE_URL}/licenses/validate`,
+      headers: { "Content-Type": "application/json", "Content-Length": body.length }
+    });
+
+    let data = "";
+    req.on("response", (res) => {
+      res.on("data",  chunk => { data += chunk; });
+      res.on("end",   ()    => { try { resolve(JSON.parse(data)); } catch { reject(new Error("Resposta invalida")); } });
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// ─── License gate ───────────────────────────────────────────────────────────
+// Returns { allowed, reason, offlineWarning, daysLeft }
+async function checkLicense(moduleName) {
+  // In dev mode skip license check (set TAVON_SKIP_LICENSE=1)
+  if (process.env.TAVON_SKIP_LICENSE === "1" || process.env.WEB_URL) return { allowed: true };
+
+  const config    = readConfig();
+  const license   = config.license || {};
+  const machineId = getMachineId(config);
+
+  // No license stored → must activate
+  if (!license.key) return { allowed: false, needsActivation: true };
+
+  const now              = Date.now();
+  const lastChecked      = license.last_validated_at ? new Date(license.last_validated_at).getTime() : 0;
+  const hoursSinceCheck  = (now - lastChecked) / 3600000;
+  const graceUntil       = license.grace_until_at ? new Date(license.grace_until_at).getTime() : 0;
+
+  if (hoursSinceCheck >= LICENSE_CHECK_INTERVAL_H) {
+    // Need fresh online check
+    try {
+      const result = await validateLicenseOnline(license.key, moduleName, machineId);
+
+      if (result.valid) {
+        // Refresh cached state
+        license.last_validated_at = new Date().toISOString();
+        license.grace_until_at    = new Date(now + LICENSE_GRACE_DAYS * 86400000).toISOString();
+        license.expires_at        = result.expires_at  || null;
+        license.days_left         = result.days_left   ?? null;
+        license.client_name       = result.client_name || license.client_name;
+        license.machine_id        = machineId;
+        writeConfig({ ...config, license });
+        return { allowed: true, daysLeft: result.days_left };
+      } else {
+        return { allowed: false, reason: result.reason || "Licenca invalida" };
+      }
+    } catch (_networkErr) {
+      // Offline path: use grace period
+      if (graceUntil && now < graceUntil) {
+        const graceDaysLeft = Math.ceil((graceUntil - now) / 86400000);
+        return { allowed: true, offlineWarning: true, graceDaysLeft };
+      }
+      return { allowed: false, reason: `Sem conexao com o servidor de licencas. Grace period expirado. Conecte-se a internet para renovar.` };
+    }
+  }
+
+  // Last check was recent — trust cache
+  if (license.expires_at && new Date(license.expires_at).getTime() < now) {
+    return { allowed: false, reason: "Licenca expirada. Renove com o suporte Tavon." };
+  }
+
+  return { allowed: true, daysLeft: license.days_left ?? null };
+}
+
+// ─── License window ─────────────────────────────────────────────────────────
+let licenseWindow = null;
+
+function createLicenseWindow(moduleName, onActivated) {
+  licenseWindow = new BrowserWindow({
+    width: 480,
+    height: 560,
+    resizable: false,
+    center: true,
+    backgroundColor: "#0e0e10",
+    title: "Ativar Tavon",
+    autoHideMenuBar: true,
+    show: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "license-preload.cjs")
+    }
+  });
+
+  licenseWindow.loadFile(path.join(__dirname, "license-window.html"));
+  licenseWindow.once("ready-to-show", () => licenseWindow.show());
+  licenseWindow.on("closed", () => { licenseWindow = null; });
+
+  // IPC from license window
+  ipcMain.handleOnce("license:getModule",  () => moduleName);
+  ipcMain.handleOnce("license:openSupport", () => shell.openExternal("https://tavon.com.br/suporte"));
+  ipcMain.handleOnce("license:validate", async (_ev, key) => {
+    const config    = readConfig();
+    const machineId = getMachineId(config);
+    const result    = await validateLicenseOnline(key, moduleName, machineId);
+
+    if (result.valid) {
+      const now = Date.now();
+      const license = {
+        key,
+        machine_id:        machineId,
+        client_name:       result.client_name || "",
+        module:            result.module       || moduleName,
+        expires_at:        result.expires_at   || null,
+        days_left:         result.days_left    ?? null,
+        last_validated_at: new Date().toISOString(),
+        grace_until_at:    new Date(now + LICENSE_GRACE_DAYS * 86400000).toISOString()
+      };
+      writeConfig({ ...config, license });
+
+      // Give the UI a moment to show success, then open app
+      setTimeout(() => {
+        if (licenseWindow && !licenseWindow.isDestroyed()) licenseWindow.close();
+        onActivated();
+      }, 1400);
+    }
+
+    return result;
+  });
+}
+
 function createWindow() {
   const moduleName = resolveModuleName();
+  const isTotem = moduleName === "totem";
   const mainWindow = new BrowserWindow({
-    width: 1366,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 720,
-    backgroundColor: "#111417",
+    width:    isTotem ? 1080 : 1366,
+    height:   isTotem ? 1920 : 900,
+    minWidth: isTotem ?  540 : 1024,
+    minHeight:isTotem ?  960 : 720,
+    backgroundColor: "#0e0e10",
     title: app.getName(),
     autoHideMenuBar: true,
     show: false,
@@ -151,6 +315,16 @@ function setupAutoUpdates(mainWindow) {
   // Never download automatically — renderer controls the flow
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
+
+  // Each module is published under its own tag prefix (admin-v, garcom-v, etc.)
+  // electron-updater must know the prefix to find the correct latest.yml on GitHub
+  const moduleName = resolveModuleName();
+  autoUpdater.setFeedURL({
+    provider: "github",
+    owner: "renezit0",
+    repo: "tavon",
+    tagNamePrefix: `${moduleName}-v`
+  });
 
   const send = (payload) => {
     if (!mainWindow.isDestroyed()) mainWindow.webContents.send("updates:status", payload);
@@ -279,7 +453,46 @@ ipcMain.handle("updates:install", () => {
 
 app.whenReady().then(async () => {
   await startApi();
+
+  const moduleName = resolveModuleName();
+  const licenseStatus = await checkLicense(moduleName);
+
+  if (!licenseStatus.allowed) {
+    // Show license activation window
+    createLicenseWindow(moduleName, () => createWindow());
+    return;
+  }
+
   createWindow();
+
+  // Show offline grace warning via dialog (non-blocking)
+  if (licenseStatus.offlineWarning) {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      dialog.showMessageBox(win, {
+        type: "warning",
+        title: "Modo offline",
+        message: `Não foi possível verificar sua licença online.\nO aplicativo funcionará por mais ${licenseStatus.graceDaysLeft} dia(s).\nConecte-se à internet para renovar.`,
+        buttons: ["Entendido"]
+      });
+    }
+  }
+
+  // Warn when license is near expiry (≤ 7 days)
+  if (licenseStatus.daysLeft !== null && licenseStatus.daysLeft <= 7 && licenseStatus.daysLeft > 0) {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      dialog.showMessageBox(win, {
+        type: "info",
+        title: "Licença expirando",
+        message: `Sua licença expira em ${licenseStatus.daysLeft} dia(s).\nRenove com o suporte Tavon para evitar interrupção.`,
+        buttons: ["OK", "Abrir suporte"],
+        defaultId: 0
+      }).then(({ response }) => {
+        if (response === 1) shell.openExternal("https://tavon.com.br/suporte");
+      });
+    }
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
