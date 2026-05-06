@@ -285,6 +285,178 @@ app.post("/licenses/validate", async (request, reply) => {
   return response;
 });
 
+// ─── Admins CRUD ─────────────────────────────────────────────────────────────
+app.get("/admins", { preHandler: requireAuth }, async () => {
+  const [rows] = await pool.query("SELECT id, name, email, created_at FROM admins ORDER BY name");
+  return rows;
+});
+
+app.post("/admins", { preHandler: requireAuth }, async (request, reply) => {
+  const data = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(6)
+  }).parse(request.body);
+  const hash = await bcrypt.hash(data.password, 12);
+  const [result] = await pool.query(
+    "INSERT INTO admins (name, email, password_hash) VALUES (?, ?, ?)",
+    [data.name, data.email, hash]
+  );
+  const [rows] = await pool.query("SELECT id, name, email, created_at FROM admins WHERE id = ?", [(result as any).insertId]);
+  return reply.status(201).send((rows as any[])[0]);
+});
+
+app.put("/admins/:id", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  const data = z.object({
+    name: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+    password: z.string().min(6).optional()
+  }).parse(request.body);
+  const sets: string[] = [], vals: unknown[] = [];
+  if (data.name)     { sets.push("name = ?");          vals.push(data.name); }
+  if (data.email)    { sets.push("email = ?");         vals.push(data.email); }
+  if (data.password) { sets.push("password_hash = ?"); vals.push(await bcrypt.hash(data.password, 12)); }
+  if (!sets.length)  return reply.status(400).send({ error: "Nenhum campo para atualizar" });
+  await pool.query(`UPDATE admins SET ${sets.join(", ")} WHERE id = ?`, [...vals, id]);
+  const [rows] = await pool.query("SELECT id, name, email, created_at FROM admins WHERE id = ?", [id]);
+  return (rows as any[])[0];
+});
+
+app.delete("/admins/:id", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  const caller = (request as any).user;
+  if (String(caller.id) === String(id)) return reply.status(400).send({ error: "Nao e possivel remover a si mesmo" });
+  await pool.query("DELETE FROM admins WHERE id = ?", [id]);
+  return reply.status(204).send();
+});
+
+// ─── Payments CRUD ────────────────────────────────────────────────────────────
+app.get("/payments", { preHandler: requireAuth }, async (request) => {
+  const { client_id, status } = request.query as any;
+  let sql = `SELECT p.*, c.name AS client_name, c.company AS client_company
+             FROM payments p JOIN clients c ON c.id = p.client_id WHERE 1=1`;
+  const params: unknown[] = [];
+  if (client_id) { sql += " AND p.client_id = ?"; params.push(client_id); }
+  if (status)    { sql += " AND p.status = ?";    params.push(status); }
+  sql += " ORDER BY p.due_date DESC, p.created_at DESC";
+  const [rows] = await pool.query(sql, params);
+  return rows;
+});
+
+app.post("/payments", { preHandler: requireAuth }, async (request, reply) => {
+  const data = z.object({
+    client_id:   z.number(),
+    license_id:  z.number().nullable().optional(),
+    amount:      z.number(),
+    description: z.string().min(1),
+    status:      z.enum(["pending","paid","overdue","cancelled"]).default("pending"),
+    due_date:    z.string().nullable().optional(),
+    paid_at:     z.string().nullable().optional(),
+    notes:       z.string().optional()
+  }).parse(request.body);
+  const [result] = await pool.query(
+    `INSERT INTO payments (client_id, license_id, amount, description, status, due_date, paid_at, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [data.client_id, data.license_id ?? null, data.amount, data.description,
+     data.status, data.due_date ?? null, data.paid_at ?? null, data.notes ?? null]
+  );
+  const [rows] = await pool.query("SELECT * FROM payments WHERE id = ?", [(result as any).insertId]);
+  return reply.status(201).send((rows as any[])[0]);
+});
+
+app.put("/payments/:id", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  const data = z.object({
+    amount:      z.number().optional(),
+    description: z.string().optional(),
+    status:      z.enum(["pending","paid","overdue","cancelled"]).optional(),
+    due_date:    z.string().nullable().optional(),
+    paid_at:     z.string().nullable().optional(),
+    notes:       z.string().nullable().optional()
+  }).parse(request.body);
+  const sets: string[] = [], vals: unknown[] = [];
+  if (data.amount      !== undefined) { sets.push("amount = ?");      vals.push(data.amount); }
+  if (data.description !== undefined) { sets.push("description = ?"); vals.push(data.description); }
+  if (data.status      !== undefined) { sets.push("status = ?");      vals.push(data.status); }
+  if (data.due_date    !== undefined) { sets.push("due_date = ?");    vals.push(data.due_date); }
+  if (data.paid_at     !== undefined) { sets.push("paid_at = ?");     vals.push(data.paid_at); }
+  if (data.notes       !== undefined) { sets.push("notes = ?");       vals.push(data.notes); }
+  // auto-mark paid_at when status → paid
+  if (data.status === "paid" && data.paid_at === undefined) { sets.push("paid_at = NOW()"); }
+  if (!sets.length) return reply.status(400).send({ error: "Nenhum campo para atualizar" });
+  await pool.query(`UPDATE payments SET ${sets.join(", ")} WHERE id = ?`, [...vals, id]);
+  const [rows] = await pool.query("SELECT * FROM payments WHERE id = ?", [id]);
+  return (rows as any[])[0];
+});
+
+app.delete("/payments/:id", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  await pool.query("DELETE FROM payments WHERE id = ?", [id]);
+  return reply.status(204).send();
+});
+
+// ─── Portal do cliente ────────────────────────────────────────────────────────
+async function requirePortalAuth(request: any, reply: any) {
+  try {
+    await request.jwtVerify();
+    if (!request.user.portal) return reply.status(403).send({ error: "Acesso negado" });
+  } catch {
+    reply.status(401).send({ error: "Nao autorizado" });
+  }
+}
+
+app.post("/portal/login", async (request, reply) => {
+  const { email, password } = z.object({
+    email: z.string().email(),
+    password: z.string().min(1)
+  }).parse(request.body);
+
+  const [rows] = await pool.query("SELECT * FROM clients WHERE email = ? AND active = 1", [email]);
+  const client = (rows as any[])[0];
+  if (!client || !client.password_hash) return reply.status(401).send({ error: "Credenciais invalidas ou acesso nao configurado" });
+
+  const ok = await bcrypt.compare(password, client.password_hash);
+  if (!ok) return reply.status(401).send({ error: "Credenciais invalidas" });
+
+  const token = app.jwt.sign({ id: client.id, email: client.email, portal: true }, { expiresIn: "12h" });
+  return { token, client: { id: client.id, name: client.name, email: client.email, company: client.company } };
+});
+
+app.get("/portal/me", { preHandler: requirePortalAuth }, async (request) => {
+  const { id } = (request as any).user;
+  const [clients] = await pool.query("SELECT id, name, email, phone, company, created_at FROM clients WHERE id = ?", [id]);
+  const client = (clients as any[])[0];
+  if (!client) return { error: "Cliente nao encontrado" };
+
+  const [licenses] = await pool.query(
+    "SELECT id, license_key, module, status, started_at, expires_at, max_devices, created_at FROM licenses WHERE client_id = ? ORDER BY created_at DESC",
+    [id]
+  );
+  const [payments] = await pool.query(
+    "SELECT id, amount, description, status, due_date, paid_at, created_at FROM payments WHERE client_id = ? ORDER BY due_date DESC, created_at DESC",
+    [id]
+  );
+  const [devices] = await pool.query(
+    `SELECT da.machine_id, da.hostname, da.platform, da.first_seen, da.last_seen
+     FROM device_activations da
+     JOIN licenses l ON l.id = da.license_id
+     WHERE l.client_id = ? ORDER BY da.last_seen DESC`,
+    [id]
+  );
+
+  return { ...client, licenses, payments, devices };
+});
+
+// Endpoint para admin definir/resetar senha do portal do cliente
+app.post("/clients/:id/set-password", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  const { password } = z.object({ password: z.string().min(6) }).parse(request.body);
+  const hash = await bcrypt.hash(password, 12);
+  await pool.query("UPDATE clients SET password_hash = ? WHERE id = ?", [hash, id]);
+  return { ok: true };
+});
+
 // ─── Stats ────────────────────────────────────────────────────────────────────
 app.get("/stats", { preHandler: requireAuth }, async () => {
   const [[totalClients]] = await pool.query("SELECT COUNT(*) AS n FROM clients") as any;

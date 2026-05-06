@@ -44,5 +44,36 @@ export const api = {
   },
   createLicense: (data: any) => request<any>("POST", "/licenses", data),
   updateLicense: (id: number, data: any) => request<any>("PUT", `/licenses/${id}`, data),
-  deleteLicense: (id: number) => request<void>("DELETE", `/licenses/${id}`)
+  deleteLicense: (id: number) => request<void>("DELETE", `/licenses/${id}`),
+
+  // Admins
+  listAdmins: () => request<any[]>("GET", "/admins"),
+  createAdmin: (data: any) => request<any>("POST", "/admins", data),
+  updateAdmin: (id: number, data: any) => request<any>("PUT", `/admins/${id}`, data),
+  deleteAdmin: (id: number) => request<void>("DELETE", `/admins/${id}`),
+
+  // Payments
+  listPayments: (params?: { client_id?: number; status?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>("GET", `/payments${q ? `?${q}` : ""}`);
+  },
+  createPayment: (data: any) => request<any>("POST", "/payments", data),
+  updatePayment: (id: number, data: any) => request<any>("PUT", `/payments/${id}`, data),
+  deletePayment: (id: number) => request<void>("DELETE", `/payments/${id}`),
+
+  // Client portal (admin side)
+  setClientPassword: (id: number, password: string) =>
+    request<any>("POST", `/clients/${id}/set-password`, { password }),
+
+  // Portal login (client side — no token needed)
+  portalLogin: (email: string, password: string) =>
+    request<{ token: string; client: any }>("POST", "/portal/login", { email, password }),
+  portalMe: (token: string) => {
+    const saved = localStorage.getItem("tvn_license_token");
+    localStorage.setItem("tvn_license_token", token);
+    return request<any>("GET", "/portal/me").finally(() => {
+      if (saved) localStorage.setItem("tvn_license_token", saved);
+      else localStorage.removeItem("tvn_license_token");
+    });
+  }
 };

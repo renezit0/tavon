@@ -58,6 +58,30 @@ async function migrate() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    // password_hash para portal do cliente
+    await conn.query(`
+      ALTER TABLE clients
+      ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL
+    `).catch(() => {});
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        client_id INT NOT NULL,
+        license_id INT,
+        amount DECIMAL(10,2) NOT NULL,
+        description VARCHAR(255) NOT NULL,
+        status ENUM('pending','paid','overdue','cancelled') NOT NULL DEFAULT 'pending',
+        due_date DATE,
+        paid_at DATETIME,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+        FOREIGN KEY (license_id) REFERENCES licenses(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     await conn.query(`
       CREATE TABLE IF NOT EXISTS device_activations (
         id INT AUTO_INCREMENT PRIMARY KEY,
