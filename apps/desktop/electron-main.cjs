@@ -183,7 +183,7 @@ async function checkLicense(moduleName) {
         const graceDaysLeft = Math.ceil((graceUntil - now) / 86400000);
         return { allowed: true, offlineWarning: true, graceDaysLeft };
       }
-      return { allowed: false, reason: `Sem conexao com o servidor de licencas. Grace period expirado. Conecte-se a internet para renovar.` };
+      return { allowed: false, reason: `Sem conexão com o servidor de licenças. Grace period expirado. Conecte-se a internet para renovar.` };
     }
   }
 
@@ -349,7 +349,7 @@ function setupAutoUpdates(mainWindow) {
   };
 
   autoUpdater.on("checking-for-update", () => {
-    send({ status: "checking", message: "Verificando atualizacoes..." });
+    send({ status: "checking", message: "Verificando atualizações..." });
   });
 
   autoUpdater.on("update-available", (info) => {
@@ -357,11 +357,11 @@ function setupAutoUpdates(mainWindow) {
   });
 
   autoUpdater.on("update-not-available", () => {
-    send({ status: "idle", message: "Aplicativo ja esta atualizado." });
+    send({ status: "idle", message: "Aplicativo já está atualizado." });
   });
 
   autoUpdater.on("error", (error) => {
-    send({ status: "error", message: error?.message || "Falha ao verificar atualizacao." });
+    send({ status: "error", message: error?.message || "Falha ao verificar atualização." });
   });
 
   autoUpdater.on("download-progress", (progress) => {
@@ -454,7 +454,7 @@ ipcMain.handle("print:silent", async (event, input = {}) => {
 
 ipcMain.handle("updates:check", async () => {
   if (!app.isPackaged) {
-    return { status: "dev", message: "Atualizacao automatica disponivel apenas no app instalado." };
+    return { status: "dev", message: "Atualização automática disponivel apenas no app instalado." };
   }
   autoUpdater.checkForUpdates().catch(() => undefined);
   return { status: "checking" };

@@ -95,7 +95,7 @@ const routeLinks: Array<{ id: PageId; label: string; href: string; icon: typeof 
     label: "Painel Administrativo",
     href: "/admin",
     icon: LayoutDashboard,
-    description: "Gestao do restaurante, produtos, mesas, usuarios, relatorios e impressao."
+    description: "Gestao do restaurante, produtos, mesas, usuários, relatórios e impressao."
   },
   {
     id: "client",
@@ -417,7 +417,7 @@ function App() {
         const minDisplay = new Promise((r) => setTimeout(r, 3500));
         await Promise.all([api.login().then(() => reload()), minDisplay]);
       } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : "Nao foi possivel conectar ao servidor");
+        if (mounted) setError(err instanceof Error ? err.message : "Não foi possível conectar ao servidor");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -486,7 +486,7 @@ function App() {
     return window.tavonDesktop.onUpdateStatus((payload) => {
       if (!payload.message) return;
       if (!["available", "downloaded", "error"].includes(payload.status)) return;
-      const message = payload.status === "error" ? `Erro na atualizacao: ${payload.message}` : payload.message;
+      const message = payload.status === "error" ? `Erro na atualização: ${payload.message}` : payload.message;
       if (lastUpdateToastRef.current === message) return;
       lastUpdateToastRef.current = message;
       setToast(message);
@@ -543,10 +543,10 @@ function App() {
       }
       api.setBaseUrl(normalizedUrl);
       setDesktopConfigOpen(false);
-      setToast("Servidor configurado. Reabrindo conexao...");
+      setToast("Servidor configurado. Reabrindo conexão...");
       window.setTimeout(() => window.location.reload(), 500);
     } catch (err) {
-      setDesktopConfigError(err instanceof Error ? err.message : "Nao foi possivel salvar o servidor");
+      setDesktopConfigError(err instanceof Error ? err.message : "Não foi possível salvar o servidor");
     }
   };
   const showOperationalShell = activePage !== "client" && !desktopLockedPage;
@@ -683,7 +683,7 @@ function App() {
                     setServiceCalls((current) => [call, ...current.filter((item) => item.id !== call.id)]);
                     setToast(`Garçom chamado para ${call.tableName}`);
                   } catch (err) {
-                    setToast(err instanceof Error ? err.message : "Nao foi possivel chamar o garçom");
+                    setToast(err instanceof Error ? err.message : "Não foi possível chamar o garçom");
                   }
                 }}
                 navigate={navigate}
@@ -709,7 +709,7 @@ function App() {
                     setServiceCalls((current) => current.map((item) => (item.id === call.id ? call : item)));
                     setToast(`Chamado de ${call.tableName} atendido`);
                   } catch (err) {
-                    setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o chamado");
+                    setToast(err instanceof Error ? err.message : "Não foi possível atualizar o chamado");
                   }
                 }}
                 onOrderStatusChange={async (orderId, status) => {
@@ -718,7 +718,7 @@ function App() {
                     setOrders((current) => current.map((item) => (item.id === order.id ? order : item)));
                     setToast(`${order.tableName} · ${order.checkCode} marcado como ${ORDER_STATUS_LABEL[status]}`);
                   } catch (err) {
-                    setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o pedido");
+                    setToast(err instanceof Error ? err.message : "Não foi possível atualizar o pedido");
                   }
                 }}
                 onToast={setToast}
@@ -737,7 +737,7 @@ function App() {
                     setOrders((current) => current.map((item) => (item.id === order.id ? order : item)));
                     setToast(`Pedido atualizado para ${ORDER_STATUS_LABEL[status]}`);
                   } catch (err) {
-                    setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o pedido");
+                    setToast(err instanceof Error ? err.message : "Não foi possível atualizar o pedido");
                   }
                 }}
                 onPrint={(order) =>
@@ -752,7 +752,7 @@ function App() {
                     setServiceCalls((current) => current.map((item) => (item.id === call.id ? call : item)));
                     setToast(`Chamado de ${call.tableName} atendido`);
                   } catch (err) {
-                    setToast(err instanceof Error ? err.message : "Nao foi possivel atualizar o chamado");
+                    setToast(err instanceof Error ? err.message : "Não foi possível atualizar o chamado");
                   }
                 }}
                 onConfigOpen={desktopLockedPage ? openDesktopConfig : undefined}
@@ -799,7 +799,7 @@ function App() {
               <div className="service-confirm-icon">
                 <Settings2 size={26} />
               </div>
-              <p className="eyebrow">Configuracao</p>
+              <p className="eyebrow">Configuração</p>
               <h3>Servidor Tavon</h3>
               {!desktopConfigUnlocked ? (
                 <>
@@ -887,10 +887,10 @@ function App() {
                   </div>
                   <p className="eyebrow">Nova versao disponivel</p>
                   <h3>Tavon v{updateStatus.version}</h3>
-                  <p>Uma nova versao do aplicativo esta disponivel. Deseja baixar e instalar agora?</p>
+                  <p>Uma nova versão do aplicativo está disponível. Deseja baixar e instalar agora?</p>
                   <div className="update-modal-actions">
                     <button className="ghost-button" onClick={() => setUpdateModalOpen(false)}>
-                      Agora nao
+                      Agora não
                     </button>
                     <button className="checkout-button" onClick={() => {
                       setUpdateStatus((s) => ({ ...s, status: "downloading", percent: 0 }));
@@ -909,7 +909,7 @@ function App() {
                       <path d="M20 13v12M14 20l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  <p className="eyebrow">Baixando atualizacao</p>
+                  <p className="eyebrow">Baixando atualização</p>
                   <h3>v{updateStatus.version}</h3>
                   <div className="update-progress-bar">
                     <div className="update-progress-fill" style={{ width: `${updateStatus.percent ?? 0}%` }} />
@@ -927,7 +927,7 @@ function App() {
                   </div>
                   <p className="eyebrow">Pronto para instalar</p>
                   <h3>Tavon v{updateStatus.version}</h3>
-                  <p>A atualizacao foi baixada. O aplicativo sera reiniciado para aplicar.</p>
+                  <p>A atualização foi baixada. O aplicativo será reiniciado para aplicar.</p>
                   <div className="update-modal-actions">
                     <button className="ghost-button" onClick={() => setUpdateModalOpen(false)}>
                       Depois
@@ -1041,7 +1041,7 @@ function AdminPanel(props: {
   onReload: () => Promise<void>;
 }) {
   const [activeSection, setActiveSection] =
-    useState<"dashboard" | "produtos" | "comandas" | "tickets" | "configuracoes">("dashboard");
+    useState<"dashboard" | "produtos" | "comandas" | "tickets" | "configurações">("dashboard");
   const [qrTableId, setQrTableId] = useState(props.tables[0]?.id || "");
   const [qrCode, setQrCode] = useState("");
   const [productSearch, setProductSearch] = useState("");
@@ -1080,9 +1080,9 @@ function AdminPanel(props: {
     try {
       const updated = await api.updateRestaurant(props.restaurant);
       props.setRestaurant(updated);
-      props.onToast("Configuracoes visuais salvas");
+      props.onToast("Configurações visuais salvas");
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel salvar");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível salvar");
     }
   };
 
@@ -1095,9 +1095,9 @@ function AdminPanel(props: {
       });
       props.setRestaurant(updated);
       setTabletPasswordDraft("");
-      props.onToast("Configuracoes do tablet salvas");
+      props.onToast("Configurações do tablet salvas");
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel salvar as configuracoes do tablet");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível salvar as configurações do tablet");
     }
   };
 
@@ -1122,7 +1122,7 @@ function AdminPanel(props: {
       props.onToast("Produto cadastrado");
       setProductDraft({ ...productDraft, name: "" });
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel criar o produto");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível criar o produto");
     }
   };
 
@@ -1132,7 +1132,7 @@ function AdminPanel(props: {
       setQrCode(qr.dataUrl);
       props.onToast("QR da mesa gerado");
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel gerar o QR");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível gerar o QR");
     }
   };
 
@@ -1164,7 +1164,7 @@ function AdminPanel(props: {
       props.setProducts(props.products.map((item) => (item.id === updated.id ? updated : item)));
       props.onToast("Produto atualizado");
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel salvar o produto");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível salvar o produto");
     }
   };
 
@@ -1176,7 +1176,7 @@ function AdminPanel(props: {
       setEditingProduct(null);
       props.onToast("Produto excluido");
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel excluir o produto");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível excluir o produto");
     }
   };
 
@@ -1187,7 +1187,7 @@ function AdminPanel(props: {
       props.setCustomerQrs(await api.getCustomerQrs());
       props.onToast(`${quantity} QR Codes individuais gerados`);
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel gerar o lote");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível gerar o lote");
     }
   };
 
@@ -1201,7 +1201,7 @@ function AdminPanel(props: {
       setCustomerQrImage(qr.dataUrl);
       props.onToast("QR individual carregado");
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel carregar o QR");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível carregar o QR");
     }
   };
 
@@ -1218,7 +1218,7 @@ function AdminPanel(props: {
       await props.onReload();
       props.onToast(`${resolved.checkCode} ativa em ${resolved.tableName}`);
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel ativar a comanda");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível ativar a comanda");
     }
   };
 
@@ -1233,7 +1233,7 @@ function AdminPanel(props: {
       setDesktopPrinters(printers);
       props.onToast(`${printers.length} impressoras encontradas no PC`);
     } catch (err) {
-      props.onToast(err instanceof Error ? err.message : "Nao foi possivel buscar impressoras do PC");
+      props.onToast(err instanceof Error ? err.message : "Não foi possível buscar impressoras do PC");
     } finally {
       setPrinterDiscoveryLoading(false);
     }
@@ -1285,7 +1285,7 @@ function AdminPanel(props: {
       <div className="panel admin-tabs-panel">
         <div>
           <p className="eyebrow">Painel Administrativo</p>
-          <h2>Gestao real do restaurante</h2>
+          <h2>Gestão real do restaurante</h2>
         </div>
         <div className="segmented admin-section-nav">
           {[
@@ -1293,7 +1293,7 @@ function AdminPanel(props: {
             { id: "produtos", label: "Produtos", icon: ShoppingBag },
             { id: "comandas", label: "Comandas", icon: UsersRound },
             { id: "tickets", label: "Tickets", icon: ReceiptText },
-            { id: "configuracoes", label: "Configuracoes", icon: Settings2 }
+            { id: "configurações", label: "Configurações", icon: Settings2 }
           ].map((section) => {
             const Icon = section.icon;
             return (
@@ -1362,7 +1362,7 @@ function AdminPanel(props: {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Auditoria</p>
-                <h3>Rastreio de acoes</h3>
+                <h3>Rastreio de ações</h3>
               </div>
             </div>
             <div className="timeline">
@@ -1541,7 +1541,7 @@ function AdminPanel(props: {
                     ["active", "Produto ativo"],
                     ["featured", "Produto em destaque"],
                     ["temporarilyUnavailable", "Indisponivel temporariamente"],
-                    ["allowNotes", "Permitir observacoes"]
+                    ["allowNotes", "Permitir observações"]
                   ].map(([key, label]) => (
                     <label key={key} className="toggle-row">
                       <input
@@ -1664,18 +1664,18 @@ function AdminPanel(props: {
                             ...editingProduct.options,
                             {
                               id: `opt_${crypto.randomUUID()}`,
-                              name: "Nova opcao",
+                              name: "Nova opção",
                               required: false,
                               minChoices: 0,
                               maxChoices: 1,
-                              values: [{ id: `optv_${crypto.randomUUID()}`, name: "Opcao", priceDelta: 0 }]
+                              values: [{ id: `optv_${crypto.randomUUID()}`, name: "Opção", priceDelta: 0 }]
                             }
                           ]
                         })
                       }
                     >
                       <Plus size={15} />
-                      Opcao
+                      Opção
                     </button>
                   </div>
                   {editingProduct.options.map((option) => (
@@ -1698,7 +1698,7 @@ function AdminPanel(props: {
                         <button
                           className="icon-button"
                           onClick={() => updateEditingProduct({ options: editingProduct.options.filter((item) => item.id !== option.id) })}
-                          title="Remover opcao"
+                          title="Remover opção"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -1735,7 +1735,7 @@ function AdminPanel(props: {
                         }
                       >
                         <Plus size={15} />
-                        Valor da opcao
+                        Valor da opção
                       </button>
                     </div>
                   ))}
@@ -1889,7 +1889,7 @@ function AdminPanel(props: {
           <div className="panel tickets-admin-panel">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Historico</p>
+                <p className="eyebrow">Histórico</p>
                 <h3>Tickets emitidos</h3>
               </div>
               <span className="live-pill">{props.tickets.length} registros</span>
@@ -1918,7 +1918,7 @@ function AdminPanel(props: {
         </>
       )}
 
-      {activeSection === "configuracoes" && (
+      {activeSection === "configurações" && (
         <>
           <div className="panel">
             <div className="panel-heading">
@@ -1982,7 +1982,7 @@ function AdminPanel(props: {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Tablet da mesa</p>
-                <h3>Configuracao protegida</h3>
+                <h3>Configuração protegida</h3>
               </div>
               <button className="primary-button" onClick={saveTabletSettings}>
                 <Save size={17} />
@@ -2020,7 +2020,7 @@ function AdminPanel(props: {
                 placeholder="Padrao atual: 1234"
               />
             </label>
-            <p className="helper-text">Essa senha libera a configuracao local do tablet no cardapio da mesa.</p>
+            <p className="helper-text">Essa senha libera a configuração local do tablet no cardapio da mesa.</p>
           </div>
 
           <div className="panel">
@@ -2054,7 +2054,7 @@ function AdminPanel(props: {
           <div className="panel printer-config-panel">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Configuracoes de impressao</p>
+                <p className="eyebrow">Configurações de impressao</p>
                 <h3>Impressoras padrao por setor</h3>
               </div>
               <button className="ghost-button" onClick={discoverDesktopPrinters}>
@@ -2146,7 +2146,7 @@ function AdminPanel(props: {
                         props.setPrinters(props.printers.map((item) => (item.id === updated.id ? updated : item)));
                         props.onToast(updated.autoPrint ? "Impressao automatica ativada" : "Impressao automatica pausada");
                       } catch (err) {
-                        props.onToast(err instanceof Error ? err.message : "Nao foi possivel atualizar a impressora");
+                        props.onToast(err instanceof Error ? err.message : "Não foi possível atualizar a impressora");
                       }
                     }}
                   >
@@ -2296,7 +2296,7 @@ function CustomerMenu(props: {
       props.onRestaurantUpdate(updated);
       setTabletSettingsOpen(false);
     } catch (err) {
-      setTabletSettingsError(err instanceof Error ? err.message : "Nao foi possivel salvar");
+      setTabletSettingsError(err instanceof Error ? err.message : "Não foi possível salvar");
     } finally {
       setTabletSettingsSaving(false);
     }
@@ -2346,7 +2346,7 @@ function CustomerMenu(props: {
       setResolvedCheck(null);
       props.onOrder(order);
     } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : "Nao foi possivel finalizar o pedido");
+      setCheckoutError(err instanceof Error ? err.message : "Não foi possível finalizar o pedido");
     } finally {
       setSending(false);
     }
@@ -2414,8 +2414,8 @@ function CustomerMenu(props: {
       } catch {
         setScannerError(
           props.restaurant.manualCheckCodeEnabled
-            ? "Nao foi possivel acessar a camera. Digite o codigo da comanda."
-            : "Nao foi possivel acessar a camera. Permita o uso da camera para ler o QR."
+            ? "Não foi possível acessar a camera. Digite o codigo da comanda."
+            : "Não foi possível acessar a camera. Permita o uso da camera para ler o QR."
         );
       }
     }
@@ -2461,7 +2461,7 @@ function CustomerMenu(props: {
             <ShoppingBag size={17} />
             Comanda
           </button>
-          <button className="icon-button client-settings-button" onClick={openTabletSettings} title="Configuracoes do tablet">
+          <button className="icon-button client-settings-button" onClick={openTabletSettings} title="Configurações do tablet">
             <Settings2 size={18} />
           </button>
         </div>
@@ -2610,19 +2610,19 @@ function CustomerMenu(props: {
 
       {tabletSettingsOpen && (
         <div className="service-confirm-backdrop">
-          <section className="service-confirm-dialog tablet-settings-dialog" role="dialog" aria-modal="true" aria-label="Configuracoes do tablet">
+          <section className="service-confirm-dialog tablet-settings-dialog" role="dialog" aria-modal="true" aria-label="Configurações do tablet">
             <button className="dialog-close" onClick={() => setTabletSettingsOpen(false)} title="Fechar">
               <X size={18} />
             </button>
             <div className="service-confirm-icon">
               <Settings2 size={26} />
             </div>
-            <p className="eyebrow">Configuracoes</p>
+            <p className="eyebrow">Configurações</p>
             <h3>Tablet da mesa</h3>
 
             {!tabletSettingsUnlocked ? (
               <>
-                <p>Digite a senha de configuracao para alterar a mesa e os atalhos do cardapio.</p>
+                <p>Digite a senha de configuração para alterar a mesa e os atalhos do cardapio.</p>
                 <label className="field full">
                   Senha
                   <input
@@ -2881,7 +2881,7 @@ function WaiterOrderPanel(props: {
       props.onToast(`${check.checkCode} ativa em ${check.tableName}`);
       return check;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Nao foi possivel ativar a comanda";
+      const message = err instanceof Error ? err.message : "Não foi possível ativar a comanda";
       setError(message);
       props.onToast(message);
       return null;
@@ -2920,7 +2920,7 @@ function WaiterOrderPanel(props: {
       props.onOrder(order);
       await props.onReload();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Nao foi possivel lançar o pedido";
+      const message = err instanceof Error ? err.message : "Não foi possível lançar o pedido";
       setError(message);
       props.onToast(message);
     } finally {
@@ -3459,7 +3459,7 @@ function KitchenCard(props: {
             <div key={item.id}>
               <b>{item.quantity}x {item.productName}</b>
               {item.customization.notes && <small>{item.customization.notes}</small>}
-              {customization.options && <small>Opcao: {customization.options}</small>}
+              {customization.options && <small>Opção: {customization.options}</small>}
               {customization.addons && <small>Adicionais: {customization.addons}</small>}
               {customization.removedIngredients && <small>Remover: {customization.removedIngredients}</small>}
             </div>
@@ -3503,7 +3503,7 @@ function ThermalOrderTicket({ order, products }: { order: Order; products: Produ
         return (
           <div key={item.id} className="thermal-item">
             <strong>{item.quantity}x {item.productName}</strong>
-            {customization.options && <small>Opcao: {customization.options}</small>}
+            {customization.options && <small>Opção: {customization.options}</small>}
             {customization.addons && <small>Adic: {customization.addons}</small>}
             {customization.removedIngredients && <small>Sem: {customization.removedIngredients}</small>}
             {item.customization.notes && <small>Obs: {item.customization.notes}</small>}
@@ -3615,7 +3615,7 @@ function CashierPanel(props: {
     try {
       syncCheck(await api.getCheck(c));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Comanda nao encontrada");
+      setError(err instanceof Error ? err.message : "Comanda não encontrada");
       setCheck(null);
     }
   };
@@ -3651,7 +3651,7 @@ function CashierPanel(props: {
       props.onToast("Comanda fechada com sucesso!");
       window.setTimeout(() => printThermalElement("[data-print-ticket='receipt']").catch(() => undefined), 200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nao foi possivel fechar a comanda");
+      setError(err instanceof Error ? err.message : "Não foi possível fechar a comanda");
     } finally { setClosing(false); }
   };
 
