@@ -3199,8 +3199,14 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
     props.product.options.flatMap((option) => (option.required && option.values[0] ? [option.values[0].id] : []))
   );
   const [notes, setNotes] = useState("");
+  const [closing, setClosing] = useState(false);
   const unitPrice = productUnitPrice(props.product, addonIds, optionValueIds);
   const subtotal = unitPrice * quantity;
+
+  const close = () => {
+    setClosing(true);
+    setTimeout(props.onClose, 260);
+  };
 
   const toggle = (value: string, values: string[], setValues: (items: string[]) => void) => {
     setValues(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
@@ -3209,12 +3215,12 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
   const removableIngredients = props.product.ingredients.filter((ing) => ing.removable);
 
   return (
-    <div className="menu-overlay" onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
+    <div className={`menu-overlay${closing ? " closing" : ""}`} onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div className="menu-detail">
         {/* Hero image */}
         <div className="menu-detail-hero">
           <img src={props.product.imageUrl} alt="" />
-          <button className="dialog-close" onClick={props.onClose} title="Fechar">
+          <button className="dialog-close" onClick={close} title="Fechar">
             <X size={18} />
           </button>
           <span className="menu-detail-hero-pill">{props.product.name}</span>
@@ -3298,8 +3304,9 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
           </div>
           <button
             className="checkout-button"
-            onClick={() =>
-              props.onAdd({
+            onClick={() => {
+              setClosing(true);
+              setTimeout(() => props.onAdd({
                 cartId: crypto.randomUUID(),
                 product: props.product,
                 quantity,
@@ -3309,8 +3316,8 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
                 notes,
                 unitPrice,
                 subtotal
-              })
-            }
+              }), 260);
+            }}
           >
             Adicionar · {formatCurrencyBRL(subtotal)}
           </button>

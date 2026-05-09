@@ -1899,9 +1899,15 @@ textarea:focus {
   animation: menu-slide-up 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-@keyframes menu-slide-up {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+@keyframes menu-slide-up   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes menu-slide-down { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes backdrop-out    { from { opacity: 1; } to { opacity: 0; } }
+
+.menu-overlay.closing {
+  animation: backdrop-out 260ms ease forwards;
+}
+.menu-overlay.closing .menu-detail {
+  animation: menu-slide-down 260ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .menu-detail-hero {
