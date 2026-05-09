@@ -8,7 +8,9 @@
   font-display: block;
 }
 
-/* ── Wordmark ── */
+/* ── Wordmark — gold fixo da marca, independente do tema ── */
+:root { --tvn-gold: #b9a784; }
+
 .mark-tavon {
   font-family: Tavon, monospace;
   font-weight: 400;
@@ -18,7 +20,7 @@
 .wm-v-stack {
   display: inline-block;
   position: relative;
-  color: var(--primary);
+  color: var(--tvn-gold);
   line-height: 1;
   overflow: visible;
 }
@@ -29,10 +31,10 @@
   transform: translateX(-50%);
   font-size: .72em;
   line-height: 1;
-  color: var(--primary);
+  color: var(--tvn-gold);
   pointer-events: none;
 }
-.wm-v { color: var(--primary); }
+.wm-v { color: var(--tvn-gold); }
 
 :root {
   --bg:          #0f1110;
@@ -778,7 +780,7 @@ td.muted { color: var(--muted); font-size: 13px; }
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px dashed color-mix(in srgb, var(--primary) 30%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--tvn-gold) 35%, transparent);
   animation: tvnOrbit 7s linear infinite;
 }
 .tvn-orbit-track::before {
@@ -788,8 +790,8 @@ td.muted { color: var(--muted); font-size: 13px; }
   transform: translateX(-50%);
   width: 10px; height: 10px;
   border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--primary) 70%, transparent);
+  background: var(--tvn-gold);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--tvn-gold) 70%, transparent);
 }
 .tvn-orbit-inner {
   inset: 13px;
