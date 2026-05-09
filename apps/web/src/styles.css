@@ -18,6 +18,8 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  font-size: 15px;
+  letter-spacing: -0.01em;
   color: #f8fafc;
   background: #0f1110;
   font-synthesis: none;
