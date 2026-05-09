@@ -41,6 +41,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { io } from "socket.io-client";
 import {
   Addon,
@@ -3214,7 +3215,7 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
 
   const removableIngredients = props.product.ingredients.filter((ing) => ing.removable);
 
-  return (
+  return createPortal(
     <div className={`menu-overlay${closing ? " closing" : ""}`} onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div className="menu-detail">
         {/* Hero image */}
@@ -3323,7 +3324,8 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
