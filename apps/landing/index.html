@@ -843,16 +843,30 @@ document.querySelectorAll('.stats-grid').forEach(g => co.observe(g));
 const on = document.getElementById('onew');
 if (on) setInterval(() => { on.classList.remove('fl'); void on.offsetWidth; on.classList.add('fl'); }, 4200);
 
-/* CTA */
-window.sendCTA = function(){
+/* CTA — envia para API */
+window.sendCTA = async function(){
   const i = document.getElementById('einp'), b = document.getElementById('ctabtn');
   if (!i.value || !i.value.includes('@')) {
     i.style.borderColor = '#f87171'; i.style.boxShadow = '0 0 0 3px rgba(248,113,113,.12)'; i.focus();
     setTimeout(() => { i.style.borderColor = ''; i.style.boxShadow = ''; }, 1400);
     return;
   }
-  b.textContent = '✓ Recebido — entraremos em contato'; b.style.background = '#4ade80'; b.style.color = '#0b0c0f';
-  i.value = ''; i.disabled = true; b.disabled = true;
+  const email = i.value.trim();
+  b.textContent = 'Enviando...'; b.disabled = true; i.disabled = true;
+  try {
+    await fetch('https://tavonapi.seellbr.com/demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    b.textContent = '✓ Recebido — entraremos em contato!';
+    b.style.background = '#4ade80'; b.style.color = '#0b0c0f';
+    i.value = '';
+  } catch {
+    b.textContent = 'Erro — tente novamente';
+    b.style.background = '#f87171';
+    setTimeout(() => { b.textContent = 'Quero uma demo'; b.style.background = ''; b.disabled = false; i.disabled = false; }, 2500);
+  }
 };
 })();
 </script>

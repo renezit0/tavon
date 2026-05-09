@@ -96,6 +96,18 @@ async function migrate() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS demo_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(180) NOT NULL,
+        name VARCHAR(180),
+        message TEXT,
+        status ENUM('new','contacted','closed') NOT NULL DEFAULT 'new',
+        ip VARCHAR(64),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     // seed initial admin if not exists
     const adminEmail = process.env.ADMIN_EMAIL || "admin@tavon.com.br";
     const adminPassword = process.env.ADMIN_PASSWORD || "Admin@2025!";

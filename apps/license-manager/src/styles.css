@@ -548,6 +548,16 @@ td.muted { color: var(--muted); font-size: 13px; }
   text-align: center;
 }
 .login-wordmark { font-size: 32px; color: var(--text); }
+.login-home-link {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.login-home-link:hover { color: var(--primary); }
 
 .login-logo-tag {
   font-size: 11px;

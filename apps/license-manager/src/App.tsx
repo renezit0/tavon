@@ -29,10 +29,12 @@ import {
   AlertCircle,
   CheckSquare,
   Building2,
+  MessageSquare,
+  Home,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type Page = "dashboard" | "clients" | "licenses" | "admins" | "payments" | "downloads";
+type Page = "dashboard" | "clients" | "licenses" | "admins" | "payments" | "downloads" | "demos";
 
 interface Toast {
   id: number;
@@ -279,53 +281,31 @@ function SetPasswordModal({
 
 // ─── Login Page ───────────────────────────────────────────────────────────────
 function LoginPage({
-  onAdminLogin,
-  onClientLogin,
+  onLogin,
 }: {
-  onAdminLogin: (token: string, admin: Admin) => void;
-  onClientLogin: (token: string, client: any) => void;
+  onLogin: (token: string, role: "admin" | "client", user: any) => void;
 }) {
-  const [tab, setTab] = useState<"admin" | "client">("admin");
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
-  // Admin login state
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [adminLoading, setAdminLoading] = useState(false);
-  const [adminError, setAdminError] = useState("");
-
-  // Client login state
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientPassword, setClientPassword] = useState("");
-  const [clientLoading, setClientLoading] = useState(false);
-  const [clientError, setClientError] = useState("");
-
-  async function handleAdminSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setAdminError("");
-    setAdminLoading(true);
+    setError("");
+    setLoading(true);
     try {
-      const res = await api.login(adminEmail, adminPassword);
-      localStorage.setItem("tvn_license_token", res.token);
-      onAdminLogin(res.token, res.admin);
+      const res = await api.login(email, password);
+      if (res.role === "admin") {
+        localStorage.setItem("tvn_license_token", res.token);
+      } else {
+        localStorage.setItem("tvn_portal_token", res.token);
+      }
+      onLogin(res.token, res.role, res.user);
     } catch (err: any) {
-      setAdminError(err.message || "Erro ao fazer login");
+      setError(err.message || "Credenciais inválidas");
     } finally {
-      setAdminLoading(false);
-    }
-  }
-
-  async function handleClientSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setClientError("");
-    setClientLoading(true);
-    try {
-      const res = await api.portalLogin(clientEmail, clientPassword);
-      localStorage.setItem("tvn_portal_token", res.token);
-      onClientLogin(res.token, res.client);
-    } catch (err: any) {
-      setClientError(err.message || "E-mail ou senha inválidos");
-    } finally {
-      setClientLoading(false);
+      setLoading(false);
     }
   }
 
@@ -334,77 +314,37 @@ function LoginPage({
       <div className="login-card" style={{ width: "min(420px, calc(100vw - 32px))" }}>
         <div className="login-logo">
           <span className="mark-tavon login-wordmark" aria-label="Tavon">TA<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>ON</span>
-          <span className="login-logo-tag">Gestão de Licenças</span>
+          <span className="login-logo-tag">Área Restrita</span>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
-          <button
-            type="button"
-            onClick={() => setTab("admin")}
-            style={{
-              flex: 1, padding: "10px 0", background: "none", border: "none", cursor: "pointer",
-              color: tab === "admin" ? "var(--primary)" : "var(--muted)",
-              borderBottom: tab === "admin" ? "2px solid var(--primary)" : "2px solid transparent",
-              fontWeight: tab === "admin" ? 600 : 400, fontSize: 14, transition: "all .15s",
-            }}
-          >
-            <Shield size={13} style={{ marginRight: 6, verticalAlign: "middle" }} />
-            Administrador
+        {error && <div className="login-error">{error}</div>}
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="field">
+            <label>E-mail</label>
+            <input
+              type="email" value={email} autoFocus required
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              autoComplete="email"
+            />
+          </div>
+          <div className="field">
+            <label>Senha</label>
+            <PasswordInput value={password} onChange={setPassword} autoComplete="current-password" />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={loading} style={{ marginTop: 6 }}>
+            {loading
+              ? <><div className="spinner" style={{ borderTopColor: "#0a0a0c" }} />Verificando...</>
+              : "Entrar"}
           </button>
-          <button
-            type="button"
-            onClick={() => setTab("client")}
-            style={{
-              flex: 1, padding: "10px 0", background: "none", border: "none", cursor: "pointer",
-              color: tab === "client" ? "var(--primary)" : "var(--muted)",
-              borderBottom: tab === "client" ? "2px solid var(--primary)" : "2px solid transparent",
-              fontWeight: tab === "client" ? 600 : 400, fontSize: 14, transition: "all .15s",
-            }}
-          >
-            <Users size={13} style={{ marginRight: 6, verticalAlign: "middle" }} />
-            Área do cliente
-          </button>
-        </div>
+        </form>
 
-        {tab === "admin" ? (
-          <>
-            {adminError && <div className="login-error">{adminError}</div>}
-            <form onSubmit={handleAdminSubmit} className="login-form">
-              <div className="field">
-                <label>E-mail</label>
-                <input type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="admin@tavon.com.br" required />
-              </div>
-              <div className="field">
-                <label>Senha</label>
-                <PasswordInput value={adminPassword} onChange={setAdminPassword} autoComplete="current-password" />
-              </div>
-              <button className="btn btn-primary" type="submit" disabled={adminLoading} style={{ marginTop: 6 }}>
-                {adminLoading ? <><div className="spinner" style={{ borderTopColor: "#0a0a0c" }} />Entrando...</> : "Entrar"}
-              </button>
-            </form>
-          </>
-        ) : (
-          <>
-            {clientError && <div className="login-error">{clientError}</div>}
-            <form onSubmit={handleClientSubmit} className="login-form">
-              <div className="field">
-                <label>E-mail</label>
-                <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="seu@email.com" required />
-              </div>
-              <div className="field">
-                <label>Senha</label>
-                <PasswordInput value={clientPassword} onChange={setClientPassword} autoComplete="current-password" />
-              </div>
-              <button className="btn btn-primary" type="submit" disabled={clientLoading} style={{ marginTop: 6 }}>
-                {clientLoading ? <><div className="spinner" style={{ borderTopColor: "#0a0a0c" }} />Entrando...</> : "Acessar portal"}
-              </button>
-            </form>
-            <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 12, marginTop: 12 }}>
-              Acesse com o e-mail e senha fornecidos pelo seu administrador.
-            </p>
-          </>
-        )}
+        <div style={{ textAlign: "center", marginTop: 18 }}>
+          <a href="/" className="login-home-link">
+            <Home size={12} style={{ verticalAlign: "middle", marginRight: 5 }} />
+            Voltar à página inicial
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -2030,6 +1970,135 @@ function PaymentsPage({ toast }: { toast: (msg: string, type?: "success" | "erro
   );
 }
 
+// ─── Demo Requests Page ────────────────────────────────────────────────────────
+function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") => void }) {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [filter, setFilter]     = useState("");
+
+  useEffect(() => {
+    api.listDemos().then(setRequests).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  async function updateStatus(id: number, status: string) {
+    try {
+      const updated = await api.updateDemo(id, status);
+      setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      toast("Status atualizado");
+    } catch (e: any) { toast(e.message, "error"); }
+  }
+
+  async function deleteReq(id: number) {
+    if (!confirm("Remover esta solicitação?")) return;
+    try {
+      await api.deleteDemo(id);
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      toast("Solicitação removida");
+    } catch (e: any) { toast(e.message, "error"); }
+  }
+
+  const statusLabel: Record<string, string> = { new: "Novo", contacted: "Contatado", closed: "Encerrado" };
+  const filtered = filter ? requests.filter((r) => r.status === filter) : requests;
+  const newCount = requests.filter((r) => r.status === "new").length;
+
+  return (
+    <div className="page-wrap">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
+            Solicitações de Demo
+            {newCount > 0 && (
+              <span style={{ marginLeft: 10, fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--primary-dim)", color: "var(--primary)" }}>
+                {newCount} novo{newCount > 1 ? "s" : ""}
+              </span>
+            )}
+          </h1>
+          <p className="page-sub">{requests.length} solicitação(ões) recebida(s) pelo site</p>
+        </div>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="search-input"
+          style={{ width: 160, cursor: "pointer" }}
+        >
+          <option value="">Todas</option>
+          <option value="new">Novos</option>
+          <option value="contacted">Contatados</option>
+          <option value="closed">Encerrados</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+          <div className="spinner" />
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>E-mail</th>
+                <th>Nome</th>
+                <th>Mensagem</th>
+                <th>Status</th>
+                <th>IP</th>
+                <th>Recebido em</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "40px 0" }}>
+                    Nenhuma solicitação encontrada
+                  </td>
+                </tr>
+              )}
+              {filtered.map((r) => (
+                <tr key={r.id}>
+                  <td>
+                    <a href={`mailto:${r.email}`} style={{ color: "var(--primary)", textDecoration: "none" }}>
+                      {r.email}
+                    </a>
+                  </td>
+                  <td>{r.name || <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                  <td style={{ maxWidth: 220 }}>
+                    <span title={r.message || ""} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.message || <span style={{ color: "var(--muted)" }}>—</span>}
+                    </span>
+                  </td>
+                  <td>
+                    <select
+                      value={r.status}
+                      onChange={(e) => updateStatus(r.id, e.target.value)}
+                      style={{
+                        background: "var(--surface-2)", color: "var(--text)",
+                        border: "1px solid var(--border)", borderRadius: 6,
+                        padding: "3px 8px", fontSize: 12, cursor: "pointer",
+                      }}
+                    >
+                      <option value="new">Novo</option>
+                      <option value="contacted">Contatado</option>
+                      <option value="closed">Encerrado</option>
+                    </select>
+                  </td>
+                  <td style={{ fontSize: 12, color: "var(--muted)" }}>{r.ip || "—"}</td>
+                  <td style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(r.created_at)}</td>
+                  <td>
+                    <button className="btn-icon" onClick={() => deleteReq(r.id)} title="Remover">
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [token, setToken] = useState<string>(() => localStorage.getItem("tvn_license_token") || "");
@@ -2060,14 +2129,14 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }
 
-  function handleAdminLogin(newToken: string, newAdmin: Admin) {
-    setToken(newToken);
-    setAdmin(newAdmin);
-    setPage("dashboard");
-  }
-
-  function handleClientLogin(newToken: string, _client: any) {
-    setPortalToken(newToken);
+  function handleLogin(newToken: string, role: "admin" | "client", user: any) {
+    if (role === "admin") {
+      setToken(newToken);
+      setAdmin(user);
+      setPage("dashboard");
+    } else {
+      setPortalToken(newToken);
+    }
   }
 
   function handleAdminLogout() {
@@ -2101,7 +2170,7 @@ export default function App() {
   if (!token) {
     return (
       <>
-        <LoginPage onAdminLogin={handleAdminLogin} onClientLogin={handleClientLogin} />
+        <LoginPage onLogin={handleLogin} />
         <ToastContainer toasts={toasts} remove={removeToast} />
       </>
     );
@@ -2114,6 +2183,7 @@ export default function App() {
     { id: "payments",  label: "Pagamentos",        icon: <CreditCard size={16} /> },
     { id: "admins",    label: "Administradores",   icon: <Shield size={16} /> },
     { id: "downloads", label: "Downloads",         icon: <Download size={16} /> },
+    { id: "demos",     label: "Demos",             icon: <MessageSquare size={16} /> },
   ];
 
   return (
@@ -2129,6 +2199,9 @@ export default function App() {
         </div>
         <div className="topbar-right">
           {admin && <span className="topbar-admin">{admin.name || admin.email}</span>}
+          <a href="/" className="btn btn-ghost" style={{ padding: "0 12px", minHeight: 36, display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }} title="Página inicial">
+            <Home size={14} />
+          </a>
           <button className="theme-toggle" onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
@@ -2165,6 +2238,7 @@ export default function App() {
         {page === "payments"  && <PaymentsPage toast={toast} />}
         {page === "admins"    && <AdminsPage toast={toast} currentAdmin={admin} />}
         {page === "downloads" && <DownloadsPage />}
+        {page === "demos"     && <DemoPage toast={toast} />}
       </main>
 
       <ToastContainer toasts={toasts} remove={removeToast} />

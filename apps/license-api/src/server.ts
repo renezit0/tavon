@@ -20,6 +20,8 @@ await app.register(jwt, { secret: process.env.JWT_SECRET || "tavon_license_secre
 async function requireAuth(request: any, reply: any) {
   try {
     await request.jwtVerify();
+    if ((request as any).user?.role !== "admin")
+      return reply.status(403).send({ error: "Acesso restrito a administradores" });
   } catch {
     reply.status(401).send({ error: "Nao autorizado" });
   }
@@ -28,22 +30,41 @@ async function requireAuth(request: any, reply: any) {
 // ─── Health ─────────────────────────────────────────────────────────────────
 app.get("/health", async () => ({ ok: true, service: "tavon-license-api", ts: new Date().toISOString() }));
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
+// ─── Auth — login unificado ───────────────────────────────────────────────────
+// Tenta admin primeiro, depois client. Mesmo tempo de resposta independente do
+// resultado para evitar user-enumeration por timing.
+const DUMMY_HASH = "$2b$12$LHxEA5oJ8jHtXvCg3RbAuuBqb6ekAJ5qexhJIGLZwWK0WaUBGz3FS";
+
 app.post("/auth/login", async (request, reply) => {
   const { email, password } = z.object({
     email: z.string().email(),
     password: z.string().min(1)
   }).parse(request.body);
 
-  const [rows] = await pool.query("SELECT * FROM admins WHERE email = ?", [email]);
-  const admin = (rows as any[])[0];
-  if (!admin) return reply.status(401).send({ error: "Credenciais invalidas" });
+  const [[adminRows], [clientRows]] = await Promise.all([
+    pool.query("SELECT * FROM admins WHERE email = ?", [email]),
+    pool.query("SELECT * FROM clients WHERE email = ? AND active = 1", [email]),
+  ]);
+  const admin  = (adminRows  as any[])[0];
+  const client = (clientRows as any[])[0];
 
-  const ok = await bcrypt.compare(password, admin.password_hash);
-  if (!ok) return reply.status(401).send({ error: "Credenciais invalidas" });
+  // Sempre executa bcrypt para evitar timing attacks
+  const [adminOk, clientOk] = await Promise.all([
+    bcrypt.compare(password, admin?.password_hash  || DUMMY_HASH),
+    bcrypt.compare(password, client?.password_hash || DUMMY_HASH),
+  ]);
 
-  const token = app.jwt.sign({ id: admin.id, email: admin.email }, { expiresIn: "12h" });
-  return { token, admin: { id: admin.id, name: admin.name, email: admin.email } };
+  if (admin && adminOk) {
+    const token = app.jwt.sign({ id: admin.id, email: admin.email, role: "admin" }, { expiresIn: "12h" });
+    return { token, role: "admin", user: { id: admin.id, name: admin.name, email: admin.email } };
+  }
+
+  if (client && clientOk && client.password_hash) {
+    const token = app.jwt.sign({ id: client.id, email: client.email, role: "client" }, { expiresIn: "12h" });
+    return { token, role: "client", user: { id: client.id, name: client.name, email: client.email, company: client.company } };
+  }
+
+  return reply.status(401).send({ error: "Credenciais invalidas" });
 });
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
@@ -400,7 +421,8 @@ app.delete("/payments/:id", { preHandler: requireAuth }, async (request, reply) 
 async function requirePortalAuth(request: any, reply: any) {
   try {
     await request.jwtVerify();
-    if (!request.user.portal) return reply.status(403).send({ error: "Acesso negado" });
+    if ((request as any).user?.role !== "client")
+      return reply.status(403).send({ error: "Acesso restrito ao portal do cliente" });
   } catch {
     reply.status(401).send({ error: "Nao autorizado" });
   }
@@ -419,8 +441,8 @@ app.post("/portal/login", async (request, reply) => {
   const ok = await bcrypt.compare(password, client.password_hash);
   if (!ok) return reply.status(401).send({ error: "Credenciais invalidas" });
 
-  const token = app.jwt.sign({ id: client.id, email: client.email, portal: true }, { expiresIn: "12h" });
-  return { token, client: { id: client.id, name: client.name, email: client.email, company: client.company } };
+  const token = app.jwt.sign({ id: client.id, email: client.email, role: "client" }, { expiresIn: "12h" });
+  return { token, role: "client", client: { id: client.id, name: client.name, email: client.email, company: client.company } };
 });
 
 app.get("/portal/me", { preHandler: requirePortalAuth }, async (request) => {
@@ -455,6 +477,47 @@ app.post("/clients/:id/set-password", { preHandler: requireAuth }, async (reques
   const hash = await bcrypt.hash(password, 12);
   await pool.query("UPDATE clients SET password_hash = ? WHERE id = ?", [hash, id]);
   return { ok: true };
+});
+
+// ─── Demo requests ────────────────────────────────────────────────────────────
+app.post("/demo", async (request, reply) => {
+  const data = z.object({
+    email:   z.string().email(),
+    name:    z.string().min(1).optional(),
+    message: z.string().optional(),
+  }).parse(request.body);
+  const ip = request.ip;
+  await pool.query(
+    "INSERT INTO demo_requests (email, name, message, ip) VALUES (?, ?, ?, ?)",
+    [data.email, data.name || null, data.message || null, ip]
+  );
+  return reply.status(201).send({ ok: true });
+});
+
+app.get("/demo", { preHandler: requireAuth }, async (request) => {
+  const { status } = request.query as any;
+  let sql = "SELECT * FROM demo_requests WHERE 1=1";
+  const params: unknown[] = [];
+  if (status) { sql += " AND status = ?"; params.push(status); }
+  sql += " ORDER BY created_at DESC";
+  const [rows] = await pool.query(sql, params);
+  return rows;
+});
+
+app.put("/demo/:id", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  const { status } = z.object({
+    status: z.enum(["new","contacted","closed"])
+  }).parse(request.body);
+  await pool.query("UPDATE demo_requests SET status = ? WHERE id = ?", [status, id]);
+  const [rows] = await pool.query("SELECT * FROM demo_requests WHERE id = ?", [id]);
+  return (rows as any[])[0];
+});
+
+app.delete("/demo/:id", { preHandler: requireAuth }, async (request, reply) => {
+  const { id } = request.params as any;
+  await pool.query("DELETE FROM demo_requests WHERE id = ?", [id]);
+  return reply.status(204).send();
 });
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
