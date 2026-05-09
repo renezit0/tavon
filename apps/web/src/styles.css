@@ -1455,7 +1455,7 @@ textarea:focus {
 .checkout-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 35;
+  z-index: 70;
   background: rgba(0, 0, 0, 0.58);
   display: grid;
   align-items: end;
@@ -1472,7 +1472,7 @@ textarea:focus {
 .service-confirm-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 42;
+  z-index: 70;
   display: grid;
   place-items: center;
   padding: 22px;
@@ -1846,7 +1846,7 @@ textarea:focus {
   display: grid;
   place-items: center;
   padding: 22px;
-  z-index: 30;
+  z-index: 70;
   backdrop-filter: blur(10px);
 }
 
