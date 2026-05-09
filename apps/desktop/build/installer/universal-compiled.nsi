@@ -1,5 +1,5 @@
 ; Tavon Suite - Universal Installer (Download-based)
-; VAR_VERSION
+; 0.1.15
 
 Unicode True
 !include "MUI2.nsh"
@@ -8,7 +8,7 @@ Unicode True
 
 ; --- Definicoes ---
 !define PRODUCT_NAME    "Tavon Suite"
-!define PRODUCT_VERSION "VAR_VERSION"
+!define PRODUCT_VERSION "0.1.15"
 !define APP_ID          "com.tavon.restaurant.suite"
 !define INSTALL_DIR     "$PROGRAMFILES64\Tavon"
 !define REG_ROOT        "HKLM"
