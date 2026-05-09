@@ -2002,7 +2002,7 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
   const newCount = requests.filter((r) => r.status === "new").length;
 
   return (
-    <>
+    <div className="page">
       <div className="page-header">
         <div>
           <div className="page-title">
@@ -2089,7 +2089,7 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
