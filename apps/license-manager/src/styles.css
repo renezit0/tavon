@@ -18,7 +18,7 @@
 .wm-v-stack {
   display: inline-block;
   position: relative;
-  color: var(--gold);
+  color: var(--primary);
   line-height: 1;
   overflow: visible;
 }
@@ -29,10 +29,10 @@
   transform: translateX(-50%);
   font-size: .72em;
   line-height: 1;
-  color: var(--gold);
+  color: var(--primary);
   pointer-events: none;
 }
-.wm-v { color: var(--gold); }
+.wm-v { color: var(--primary); }
 
 :root {
   --bg:          #0f1110;
