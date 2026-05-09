@@ -1,0 +1,33 @@
+# Tavon License Manager — nginx config
+# Copie este arquivo para /etc/nginx/conf.d/tavon-license.conf na VPS
+# Ajuste os paths conforme seu ambiente
+
+server {
+    listen 80;
+    server_name tavon.seellbr.com;  # ajuste para seu domínio
+
+    # ── Landing page (portfólio) em / ─────────────────────────────────────────
+    root /home/tavon/apps/landing;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ── React admin em /admin ──────────────────────────────────────────────────
+    location /admin {
+        alias /home/tavon/apps/license-manager/dist;
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    # ── API (Fastify) ──────────────────────────────────────────────────────────
+    location ~ ^/(health|auth|clients|licenses|stats|admins|payments|portal) {
+        proxy_pass         http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+    }
+}
