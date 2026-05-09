@@ -1,6 +1,6 @@
 {
   "name": "@restaurant/desktop",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "private": true,
   "description": "Electron wrapper for the Restaurant QR Suite web build.",
   "author": "Tavon",
