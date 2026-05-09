@@ -67,6 +67,22 @@ body {
   min-height: 100vh;
   font-weight: 400;
   overflow-x: hidden;
+  /* CSS vars available to portals rendered at document.body */
+  --bg: #0f1110;
+  --surface: #171917;
+  --surface-2: #20211d;
+  --surface-3: #252823;
+  --line: rgba(246, 241, 232, 0.1);
+  --line-strong: rgba(246, 241, 232, 0.17);
+  --text: #f4f1ea;
+  --muted: #aaa59b;
+  --soft: #d4cec2;
+  --danger: #e46d64;
+  --success: #69c59b;
+  --warning: #d8ac58;
+  --primary: #b9a784;
+  --accent: #2EC4B6;
+  --radius: 8px;
 }
 
 button,
