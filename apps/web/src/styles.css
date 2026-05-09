@@ -3237,11 +3237,20 @@ textarea:focus {
     position: sticky;
     top: var(--client-header-height);
     z-index: 10;
+    height: auto;
     max-height: none;
     display: flex;
+    flex-direction: row;
     overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
     gap: 4px;
     padding: 6px;
+    border-radius: var(--radius);
+  }
+
+  .category-sidebar::-webkit-scrollbar {
+    display: none;
   }
 
   .category-sidebar .eyebrow {
@@ -3274,6 +3283,15 @@ textarea:focus {
     border-radius: 999px;
     margin-top: 0;
     margin-left: 0;
+  }
+
+  .category-sidebar button::before {
+    display: none;
+  }
+
+  .category-sidebar button.active {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
   .category-sidebar button:first-of-type,
