@@ -186,8 +186,10 @@ export default function App() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <Server size={20} />
-          <span>Tavon Server</span>
+          <span className="mark-tavon">
+            T<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>N
+          </span>
+          <span style={{ fontFamily: "var(--mono)", fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.5 }}>Server</span>
         </div>
 
         <nav className="sidebar-nav">

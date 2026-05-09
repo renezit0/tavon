@@ -1,18 +1,29 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@font-face {
+  font-family: Tavon;
+  src: url('./assets/Tavon-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
-  --bg:        #111417;
-  --surface:   #181c20;
-  --surface2:  #1e2227;
-  --border:    #2a2f37;
-  --text:      #e2e6ec;
-  --text2:     #8b9099;
-  --accent:    #4f8ef7;
-  --accent-h:  #3a7ae8;
-  --danger:    #e05c5c;
+  --bg:        #0f1110;
+  --surface:   #161917;
+  --surface2:  #1c201e;
+  --border:    rgba(246,241,232,.1);
+  --text:      #f4f1ea;
+  --text2:     #8b8880;
+  --accent:    #b9a784;
+  --accent-h:  #cbbf9a;
+  --accent-dim: rgba(185,167,132,.12);
+  --danger:    #e46d64;
   --danger-h:  #cc4444;
-  --success:   #4caf7d;
-  --warn:      #e0a040;
+  --success:   #69c59b;
+  --warn:      #d8ac58;
+  --mono:      "JetBrains Mono", ui-monospace, monospace;
+  --tvn-gold:  #b9a784;
   --sidebar-w: 200px;
 }
 
@@ -20,11 +31,31 @@ html, body, #root {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ── Tavon wordmark ─────────────────────────────────────────────────────── */
+.mark-tavon {
+  font-family: Tavon, var(--mono);
+  color: var(--tvn-gold);
+  line-height: 1;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: baseline;
+}
+.wm-v-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: .8;
+  position: relative;
+  top: .04em;
+}
+.wm-fork { font-family: var(--mono); font-size: .55em; opacity: .7; line-height: 1; margin-bottom: -.05em; }
+.wm-v    { font-family: Tavon, var(--mono); font-size: 1em; line-height: 1; }
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 
@@ -58,6 +89,7 @@ html, body, #root {
 }
 
 .sidebar-brand svg { color: var(--accent); }
+.sidebar-brand .mark-tavon { font-size: 1.15rem; }
 
 .sidebar-nav {
   display: flex;
@@ -84,7 +116,7 @@ html, body, #root {
 }
 
 .sidebar-nav button:hover { background: var(--surface2); color: var(--text); }
-.sidebar-nav button.active { background: rgba(79,142,247,.15); color: var(--accent); }
+.sidebar-nav button.active { background: var(--accent-dim); color: var(--accent); }
 
 .sidebar-footer {
   padding: 12px 14px;
@@ -128,7 +160,7 @@ html, body, #root {
 .pill-starting { background: rgba(224,160,64,.15);  color: var(--warn); }
 .pill-running  { background: rgba(76,175,125,.15);  color: var(--success); }
 .pill-error    { background: rgba(224,92,92,.15);   color: var(--danger); }
-.pill-external { background: rgba(79,142,247,.15);  color: var(--accent); }
+.pill-external { background: var(--accent-dim);  color: var(--accent); }
 
 /* ── Status card ─────────────────────────────────────────────────────────── */
 
@@ -304,7 +336,7 @@ button { font-family: inherit; }
   margin-left: auto;
   flex-shrink: 0;
 }
-.btn-icon:hover { color: var(--accent); background: rgba(79,142,247,.1); }
+.btn-icon:hover { color: var(--accent); background: var(--accent-dim); }
 
 /* ── Config panel ────────────────────────────────────────────────────────── */
 
@@ -349,7 +381,7 @@ button { font-family: inherit; }
 
 .toggle-option label:has(input:checked) {
   border-color: var(--accent);
-  background: rgba(79,142,247,.08);
+  background: var(--accent-dim);
 }
 
 .toggle-option input[type="radio"] {
@@ -564,12 +596,6 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: splashFadeIn .3s ease both;
-}
-
-@keyframes splashFadeIn {
-  from { opacity: 0 }
-  to   { opacity: 1 }
 }
 
 .loader-inner {

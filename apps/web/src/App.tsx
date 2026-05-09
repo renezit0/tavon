@@ -64,8 +64,8 @@ import {
 } from "@restaurant/shared";
 import { api } from "./api";
 
-type ModuleId = "admin" | "client" | "waiter" | "kitchen" | "cashier";
-type PageId = "home" | "admin" | "client" | "waiter" | "kitchen" | "cashier";
+type ModuleId = "admin" | "client" | "waiter" | "kitchen" | "cashier" | "totem";
+type PageId = "home" | "admin" | "client" | "waiter" | "kitchen" | "cashier" | "totem";
 
 type CartItem = {
   cartId: string;
@@ -84,7 +84,8 @@ const moduleTabs: Array<{ id: ModuleId; label: string; icon: typeof LayoutDashbo
   { id: "client", label: "Cliente", icon: Utensils },
   { id: "waiter", label: "Garçom", icon: ClipboardList },
   { id: "kitchen", label: "Cozinha", icon: ChefHat },
-  { id: "cashier", label: "Caixa", icon: CircleDollarSign }
+  { id: "cashier", label: "Caixa", icon: CircleDollarSign },
+  { id: "totem", label: "Totem", icon: MonitorSmartphone }
 ];
 
 const routeLinks: Array<{ id: PageId; label: string; href: string; icon: typeof LayoutDashboard; description: string }> = [
@@ -122,6 +123,13 @@ const routeLinks: Array<{ id: PageId; label: string; href: string; icon: typeof 
     href: "/caixa",
     icon: CircleDollarSign,
     description: "Busca por QR/comanda, pagamento parcial, divisao e fechamento."
+  },
+  {
+    id: "totem",
+    label: "Totem de Pedidos",
+    href: "/totem",
+    icon: MonitorSmartphone,
+    description: "Autoatendimento para o cliente fazer pedidos diretamente no totem."
   }
 ];
 
@@ -229,7 +237,7 @@ const defaultRestaurant: RestaurantSettings = {
   id: "loading",
   tenantId: "tenant_demo",
   name: "Tavon",
-  logoUrl: "/tavonlogowhite.png",
+  logoUrl: "",
   coverUrl: "",
   serviceFeePercent: 10,
   averageDeliveryMinutes: 20,
@@ -238,7 +246,7 @@ const defaultRestaurant: RestaurantSettings = {
   manualCheckCodeEnabled: true,
   theme: {
     mode: "dark",
-    primaryColor: "#F2A541",
+    primaryColor: "#b9a784",
     accentColor: "#2EC4B6",
     surfaceColor: "#121417",
     textColor: "#F8FAFC",
@@ -262,11 +270,9 @@ function resolveAssetUrl(url: string) {
 }
 
 function themedLogoUrl(restaurant: RestaurantSettings) {
-  if (!restaurant.logoUrl) return restaurant.theme.mode === "light" ? "/tavonlogo.png" : "/tavonlogowhite.png";
-  const isDark = restaurant.theme.mode !== "light";
-  const isTavonLogo = restaurant.logoUrl.includes("tavonlogo");
-  const url = isDark && isTavonLogo ? "/tavonlogowhite.png" : restaurant.logoUrl;
-  return resolveAssetUrl(url);
+  // Empty logoUrl or default Tavon image → use wordmark (rendered in JSX)
+  if (!restaurant.logoUrl || restaurant.logoUrl.includes("tavonlogo")) return "";
+  return resolveAssetUrl(restaurant.logoUrl);
 }
 
 async function printThermalElement(selector: string) {
@@ -298,6 +304,7 @@ function getPageFromPathname(pathname: string): PageId {
   if (pathname.startsWith("/garcom") || pathname.startsWith("/atendimento")) return "waiter";
   if (pathname.startsWith("/cozinha") || pathname.startsWith("/pedidos")) return "kitchen";
   if (pathname.startsWith("/caixa")) return "cashier";
+  if (pathname.startsWith("/totem")) return "totem";
   return "home";
 }
 
@@ -546,7 +553,13 @@ function App() {
       {showOperationalShell && (
         <aside className="rail">
           <button className="brand-mark" onClick={() => navigate("/")} title="Inicio">
-            {logoUrl ? <img src={logoUrl} alt="" /> : <Utensils />}
+            {logoUrl && !logoUrl.includes("tavonlogo") ? (
+              <img src={logoUrl} alt="" />
+            ) : (
+              <span className="mark-tavon">
+                T<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>N
+              </span>
+            )}
           </button>
           <nav>
             {routeLinks.map((link) => {
@@ -753,8 +766,21 @@ function App() {
                 restaurant={restaurant}
                 tables={tables}
                 customerQrs={customerQrs}
+                products={products}
+                categories={categories}
+                orders={orders}
                 onToast={setToast}
                 onReload={reload}
+                onConfigOpen={desktopLockedPage ? openDesktopConfig : undefined}
+              />
+            )}
+            {activePage === "totem" && (
+              <TotemPanel
+                restaurant={restaurant}
+                categories={categories}
+                products={products}
+                tables={tables}
+                customerQrs={customerQrs}
                 onConfigOpen={desktopLockedPage ? openDesktopConfig : undefined}
               />
             )}
@@ -919,6 +945,8 @@ function App() {
           </div>
         )}
       </main>
+
+      <span className="app-version-badge">v{__APP_VERSION__}</span>
     </div>
   );
 }
@@ -2189,6 +2217,31 @@ function CustomerMenu(props: {
     props.restaurant.manualCheckCodeEnabled
   );
   const scannerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const sheetDragY = useRef(0);
+  const sheetDragStartY = useRef(0);
+  const sheetRef = useRef<HTMLElement>(null);
+  const [sheetOffset, setSheetOffset] = useState(0);
+
+  const onGrabberTouchStart = (e: React.TouchEvent) => {
+    sheetDragStartY.current = e.touches[0].clientY;
+    sheetDragY.current = 0;
+  };
+
+  const onGrabberTouchMove = (e: React.TouchEvent) => {
+    const delta = e.touches[0].clientY - sheetDragStartY.current;
+    if (delta > 0) {
+      sheetDragY.current = delta;
+      setSheetOffset(delta);
+    }
+  };
+
+  const onGrabberTouchEnd = () => {
+    if (sheetDragY.current > 90) {
+      setCheckoutOpen(false);
+    }
+    sheetDragY.current = 0;
+    setSheetOffset(0);
+  };
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -2393,7 +2446,13 @@ function CustomerMenu(props: {
     <section className="client-page">
       <header className="client-header">
         <button className="client-brand" onClick={() => props.navigate("/cardapio?table=M01")}>
-          {logoUrl ? <img src={logoUrl} alt="" /> : <Utensils size={20} />}
+          {logoUrl ? (
+            <img src={logoUrl} alt="" />
+          ) : (
+            <span className="mark-tavon" style={{ fontSize: "1rem" }}>
+              T<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>N
+            </span>
+          )}
           <span>{props.restaurant.name}</span>
         </button>
         <div className="client-header-actions">
@@ -2468,30 +2527,37 @@ function CustomerMenu(props: {
         <div className="featured-row">
           {props.products
             .filter((product) => product.featured)
-            .slice(0, 3)
+            .slice(0, 5)
             .map((product) => (
               <button key={product.id} className="featured-card" onClick={() => setSelectedProduct(product)}>
                 <img src={product.imageUrl} alt="" />
-                <span>{product.name}</span>
-                <strong>{formatCurrencyBRL(product.price)}</strong>
+                <span className="featured-pill">Destaque</span>
+                <div className="featured-card-info">
+                  <span>{product.name}</span>
+                  <strong>{formatCurrencyBRL(product.price)}</strong>
+                </div>
               </button>
             ))}
         </div>
 
         <div className="product-grid">
           {filteredProducts.map((product) => (
-            <article key={product.id} className="product-card">
-              <img src={product.imageUrl} alt="" />
+            <article key={product.id} className="product-card" onClick={() => setSelectedProduct(product)}>
+              <div className="product-card-img-wrap">
+                <img src={product.imageUrl} alt="" />
+                {product.preparationMinutes > 0 && (
+                  <span className="product-card-badge">
+                    <Clock3 size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                    {product.preparationMinutes} min
+                  </span>
+                )}
+              </div>
               <div>
-                <span className="prep-time">
-                  <Clock3 size={14} />
-                  {product.preparationMinutes} min
-                </span>
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
                 <div className="product-card-footer">
                   <strong>{formatCurrencyBRL(product.price)}</strong>
-                  <button className="primary-button" onClick={() => setSelectedProduct(product)}>
+                  <button className="primary-button" onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); }}>
                     <Plus size={17} />
                     Adicionar
                   </button>
@@ -2642,9 +2708,18 @@ function CustomerMenu(props: {
       )}
 
       {checkoutOpen && (
-        <div className="checkout-backdrop">
-          <section className="checkout-sheet">
-            <div className="sheet-grabber" />
+        <div className="checkout-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setCheckoutOpen(false); }}>
+          <section
+            className="checkout-sheet"
+            ref={sheetRef}
+            style={sheetOffset > 0 ? { transform: `translateY(${sheetOffset}px)`, transition: "none", opacity: Math.max(0.4, 1 - sheetOffset / 280) } : undefined}
+          >
+            <div
+              className="sheet-grabber"
+              onTouchStart={onGrabberTouchStart}
+              onTouchMove={onGrabberTouchMove}
+              onTouchEnd={onGrabberTouchEnd}
+            />
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Finalizar pedido</p>
@@ -3139,108 +3214,114 @@ function ProductDialog(props: { product: Product; onClose: () => void; onAdd: (i
     setValues(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
   };
 
+  const removableIngredients = props.product.ingredients.filter((ing) => ing.removable);
+
   return (
-    <div className="dialog-backdrop">
-      <div className="product-dialog">
-        <button className="dialog-close" onClick={props.onClose} title="Fechar">
-          <X size={20} />
-        </button>
-        <img src={props.product.imageUrl} alt="" />
-        <div className="dialog-content">
-          <div className="dialog-scroll">
-            <p className="eyebrow">Personalizar pedido</p>
-            <h2>{props.product.name}</h2>
-            <p>{props.product.description}</p>
+    <div className="menu-overlay" onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
+      <div className="menu-detail">
+        {/* Hero image */}
+        <div className="menu-detail-hero">
+          <img src={props.product.imageUrl} alt="" />
+          <button className="dialog-close" onClick={props.onClose} title="Fechar">
+            <X size={18} />
+          </button>
+          <span className="menu-detail-hero-pill">{props.product.name}</span>
+          <span className="menu-detail-hero-price">{formatCurrencyBRL(props.product.price)}</span>
+        </div>
 
-            {props.product.options.map((option) => (
-              <div key={option.id} className="choice-group">
-                <strong>{option.name}</strong>
-                {option.values.map((value) => (
-                  <label key={value.id} className="choice-row">
-                    <input
-                      type={option.maxChoices === 1 ? "radio" : "checkbox"}
-                      name={option.id}
-                      checked={optionValueIds.includes(value.id)}
-                      onChange={() => {
-                        if (option.maxChoices === 1) {
-                          const otherIds = option.values.map((item) => item.id);
-                          setOptionValueIds([...optionValueIds.filter((item) => !otherIds.includes(item)), value.id]);
-                        } else {
-                          toggle(value.id, optionValueIds, setOptionValueIds);
-                        }
-                      }}
-                    />
-                    <span>{value.name}</span>
-                    {value.priceDelta > 0 && <small>+{formatCurrencyBRL(value.priceDelta)}</small>}
-                  </label>
-                ))}
-              </div>
-            ))}
+        {/* Scrollable body */}
+        <div className="dialog-scroll">
+          <p>{props.product.description}</p>
 
-            {props.product.ingredients.length > 0 && (
-              <div className="choice-group">
-                <strong>Remover ingredientes</strong>
-                {props.product.ingredients
-                  .filter((ingredient) => ingredient.removable)
-                  .map((ingredient) => (
-                    <label key={ingredient.id} className="choice-row">
-                      <input
-                        type="checkbox"
-                        checked={removedIngredientIds.includes(ingredient.id)}
-                        onChange={() => toggle(ingredient.id, removedIngredientIds, setRemovedIngredientIds)}
-                      />
-                      <span>Sem {ingredient.name.toLowerCase()}</span>
-                    </label>
-                  ))}
-              </div>
-            )}
-
-            {props.product.addons.length > 0 && (
-              <div className="choice-group">
-                <strong>Adicionais</strong>
-                {props.product.addons.map((addon: Addon) => (
-                  <label key={addon.id} className="choice-row">
-                    <input type="checkbox" checked={addonIds.includes(addon.id)} onChange={() => toggle(addon.id, addonIds, setAddonIds)} />
-                    <span>{addon.name}</span>
-                    <small>+{formatCurrencyBRL(addon.price)}</small>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {props.product.allowNotes && (
-              <label className="field">
-                Observacao
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Ex: sem molho" />
-              </label>
-            )}
-          </div>
-
-          <div className="dialog-footer">
-            <div className="stepper">
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-              <strong>{quantity}</strong>
-              <button onClick={() => setQuantity(quantity + 1)}>+</button>
+          {props.product.options.map((option) => (
+            <div key={option.id} className="choice-group">
+              <strong>{option.name}</strong>
+              {option.values.map((value) => (
+                <label key={value.id} className="choice-row">
+                  <input
+                    type={option.maxChoices === 1 ? "radio" : "checkbox"}
+                    name={option.id}
+                    checked={optionValueIds.includes(value.id)}
+                    onChange={() => {
+                      if (option.maxChoices === 1) {
+                        const otherIds = option.values.map((item) => item.id);
+                        setOptionValueIds([...optionValueIds.filter((item) => !otherIds.includes(item)), value.id]);
+                      } else {
+                        toggle(value.id, optionValueIds, setOptionValueIds);
+                      }
+                    }}
+                  />
+                  <span>{value.name}</span>
+                  {value.priceDelta > 0 && <small>+{formatCurrencyBRL(value.priceDelta)}</small>}
+                </label>
+              ))}
             </div>
-            <button
-              className="checkout-button"
-              onClick={() =>
-                props.onAdd({
-                  cartId: crypto.randomUUID(),
-                  product: props.product,
-                  quantity,
-                  removedIngredientIds,
-                  addonIds,
-                  optionValueIds,
-                  notes,
-                  unitPrice,
-                  subtotal
-                })
-              }
-            >
-              Adicionar · {formatCurrencyBRL(subtotal)}
-            </button>
+          ))}
+
+          {removableIngredients.length > 0 && (
+            <div className="choice-group">
+              <strong>Remover ingredientes</strong>
+              <div className="menu-ingredient-chips">
+                {removableIngredients.map((ingredient) => (
+                  <button
+                    key={ingredient.id}
+                    type="button"
+                    className={`menu-ingredient-chip${removedIngredientIds.includes(ingredient.id) ? " removed" : ""}`}
+                    onClick={() => toggle(ingredient.id, removedIngredientIds, setRemovedIngredientIds)}
+                  >
+                    {removedIngredientIds.includes(ingredient.id) ? `Sem ${ingredient.name.toLowerCase()}` : ingredient.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {props.product.addons.length > 0 && (
+            <div className="choice-group">
+              <strong>Adicionais</strong>
+              {props.product.addons.map((addon: Addon) => (
+                <label key={addon.id} className="choice-row">
+                  <input type="checkbox" checked={addonIds.includes(addon.id)} onChange={() => toggle(addon.id, addonIds, setAddonIds)} />
+                  <span>{addon.name}</span>
+                  <small>+{formatCurrencyBRL(addon.price)}</small>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {props.product.allowNotes && (
+            <label className="field">
+              Observacao
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Ex: sem molho" />
+            </label>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="dialog-footer">
+          <div className="stepper">
+            <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+            <strong>{quantity}</strong>
+            <button onClick={() => setQuantity(quantity + 1)}>+</button>
           </div>
+          <button
+            className="checkout-button"
+            onClick={() =>
+              props.onAdd({
+                cartId: crypto.randomUUID(),
+                product: props.product,
+                quantity,
+                removedIngredientIds,
+                addonIds,
+                optionValueIds,
+                notes,
+                unitPrice,
+                subtotal
+              })
+            }
+          >
+            Adicionar · {formatCurrencyBRL(subtotal)}
+          </button>
         </div>
       </div>
     </div>
@@ -3495,297 +3576,736 @@ function CashierPanel(props: {
   restaurant: RestaurantSettings;
   tables: Table[];
   customerQrs: CustomerQr[];
+  products: Product[];
+  categories: Category[];
+  orders: Order[];
   onToast: (message: string) => void;
   onReload: () => Promise<void>;
   onConfigOpen?: () => void;
 }) {
   const checkCodeFromUrl = new URLSearchParams(window.location.search).get("check");
-  const [code, setCode] = useState(checkCodeFromUrl || "");
   const [check, setCheck] = useState<CheckSummary | null>(null);
+  const [searchCode, setSearchCode] = useState(checkCodeFromUrl || "");
   const [method, setMethod] = useState("pix");
   const [amount, setAmount] = useState("");
   const [serviceFeeEnabled, setServiceFeeEnabled] = useState(true);
   const [discount, setDiscount] = useState("0");
   const [error, setError] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerCat, setPickerCat] = useState("all");
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [pickerQty, setPickerQty] = useState<Record<string, number>>({});
+  const [addingItems, setAddingItems] = useState(false);
 
-  const syncCheckState = (data: CheckSummary) => {
+  const syncCheck = (data: CheckSummary) => {
     setCheck(data);
-    setAmount(String(data.remaining));
+    setAmount(data.remaining > 0 ? data.remaining.toFixed(2) : "");
     setServiceFeeEnabled(data.serviceFeeEnabled);
     setDiscount(String(data.discount));
   };
 
-  const loadCheck = async () => {
+  const loadCheckByCode = async (code: string) => {
+    const c = code.trim().toUpperCase();
+    if (!c) return;
     setError("");
+    window.history.replaceState({}, "", `/caixa?check=${encodeURIComponent(c)}`);
     try {
-      const data = await api.getCheck(code);
-      syncCheckState(data);
+      syncCheck(await api.getCheck(c));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Comanda nao encontrada");
+      setCheck(null);
     }
   };
 
   const applyAdjustments = async (next?: { serviceFeeEnabled?: boolean; discount?: number }) => {
     if (!check) return;
-    setError("");
-    const nextServiceFeeEnabled = next?.serviceFeeEnabled ?? serviceFeeEnabled;
-    const nextDiscount = next?.discount ?? Number(discount || 0);
+    const sf = next?.serviceFeeEnabled ?? serviceFeeEnabled;
+    const dc = next?.discount ?? Number(discount || 0);
     try {
-      const updated = await api.updateCheckAdjustments(check.code, {
-        serviceFeeEnabled: nextServiceFeeEnabled,
-        discount: nextDiscount
-      });
-      syncCheckState(updated);
-      props.onToast("Ajustes da comanda aplicados");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Nao foi possivel aplicar o ajuste");
-    }
-  };
-
-  const activeChecks = props.customerQrs.filter((qr) => qr.status === "in_use" && qr.currentCheckCode);
-  const tableNameFor = (tableId?: string) => props.tables.find((table) => table.id === tableId)?.name || "Mesa aberta";
-  const hasPendingOrders = Boolean(
-    check?.orders.some((order) => !["delivered", "cancelled"].includes(order.status))
-  );
-
-  const loadCheckByCode = async (nextCode: string) => {
-    const normalizedCode = nextCode.trim().toUpperCase();
-    if (!normalizedCode) return;
-    setError("");
-    setCode(normalizedCode);
-    window.history.replaceState({}, "", `/caixa?check=${encodeURIComponent(normalizedCode)}`);
-    try {
-      const data = await api.getCheck(normalizedCode);
-      syncCheckState(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Comanda nao encontrada");
-    }
+      syncCheck(await api.updateCheckAdjustments(check.code, { serviceFeeEnabled: sf, discount: dc }));
+    } catch { /* silent */ }
   };
 
   const pay = async () => {
-    if (!check) return;
+    if (!check || paying) return;
+    setPaying(true);
     setError("");
     try {
-      const updated = await api.addPayment(check.code, method, Number(amount));
-      syncCheckState(updated);
+      syncCheck(await api.addPayment(check.code, method, Number(amount)));
       props.onToast("Pagamento registrado");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nao foi possivel registrar o pagamento");
-    }
+      setError(err instanceof Error ? err.message : "Falha ao registrar pagamento");
+    } finally { setPaying(false); }
   };
 
   const close = async () => {
-    if (!check) return;
+    if (!check || closing) return;
+    setClosing(true);
     setError("");
     try {
-      const updated = await api.closeCheck(check.code);
-      syncCheckState(updated);
+      syncCheck(await api.closeCheck(check.code));
       await props.onReload();
-      props.onToast("Comanda fechada");
-      window.setTimeout(() => {
-        printThermalElement("[data-print-ticket='receipt']")
-          .catch(() => undefined);
-      }, 160);
+      props.onToast("Comanda fechada com sucesso!");
+      window.setTimeout(() => printThermalElement("[data-print-ticket='receipt']").catch(() => undefined), 200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nao foi possivel fechar a comanda");
+    } finally { setClosing(false); }
+  };
+
+  const confirmAddItems = async () => {
+    if (!check) return;
+    const items = Object.entries(pickerQty).filter(([, qty]) => qty > 0).map(([id, quantity]) => ({ productId: id, quantity }));
+    if (!items.length) return;
+    setAddingItems(true);
+    try {
+      await api.createOrder({ tableId: check.tableId, customerName: check.customerName, checkCode: check.code, items });
+      syncCheck(await api.getCheck(check.code));
+      props.onToast(`${items.reduce((s, i) => s + i.quantity, 0)} itens adicionados`);
+      setPickerOpen(false);
+      setPickerQty({});
+    } catch (err) {
+      props.onToast(err instanceof Error ? err.message : "Falha ao adicionar itens");
+    } finally { setAddingItems(false); }
+  };
+
+  const activeComandas = props.customerQrs.filter((q) => q.status === "in_use" && q.currentCheckCode);
+  const hasPending = Boolean(check?.orders.some((o) => !["delivered", "cancelled"].includes(o.status)));
+  const allItems = check?.orders.flatMap((o) => o.items) ?? [];
+  const pickerTotal = Object.entries(pickerQty).reduce((s, [id, qty]) => {
+    const p = props.products.find((x) => x.id === id);
+    return s + (p ? p.price * qty : 0);
+  }, 0);
+  const pickerCount = Object.values(pickerQty).reduce((s, q) => s + q, 0);
+
+  const filteredProducts = props.products.filter((p) => {
+    const matchCat = pickerCat === "all" || p.categoryId === pickerCat;
+    const matchSearch = !pickerSearch || p.name.toLowerCase().includes(pickerSearch.toLowerCase());
+    return matchCat && matchSearch && p.active !== false && !p.temporarilyUnavailable;
+  });
+
+  useEffect(() => { if (checkCodeFromUrl) loadCheckByCode(checkCodeFromUrl); }, []);
+
+  return (
+    <div className="pos-layout">
+      {/* LEFT: Mesas */}
+      <aside className="pos-sidebar">
+        <div className="pos-sidebar-header">
+          <p className="eyebrow">Mesas abertas</p>
+          <span className="live-pill">{activeComandas.length}</span>
+        </div>
+        <div className="pos-search-row">
+          <QrCode size={15} />
+          <input
+            value={searchCode}
+            onChange={(e) => setSearchCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && loadCheckByCode(searchCode)}
+            placeholder="Código da comanda…"
+          />
+          {searchCode && (
+            <button className="icon-button" onClick={() => loadCheckByCode(searchCode)}>
+              <Search size={14} />
+            </button>
+          )}
+        </div>
+        <div className="pos-table-list">
+          {activeComandas.length === 0 && (
+            <div className="pos-empty-sidebar">
+              <Utensils size={28} />
+              <span>Nenhuma mesa aberta</span>
+            </div>
+          )}
+          {activeComandas.map((qr) => {
+            const tableName = props.tables.find((t) => t.id === qr.currentTableId)?.name ?? "Mesa";
+            const isActive = check?.code === qr.currentCheckCode;
+            const tableOrders = props.orders.filter((o) => o.checkCode === qr.currentCheckCode && !["delivered","cancelled"].includes(o.status));
+            return (
+              <button
+                key={qr.id}
+                className={`pos-table-item${isActive ? " active" : ""}`}
+                onClick={() => loadCheckByCode(qr.currentCheckCode || qr.code)}
+              >
+                <div className="pos-table-name">{tableName}</div>
+                <div className="pos-table-meta">
+                  <span>{qr.label}</span>
+                  {tableOrders.length > 0 && <span className="pos-table-pending">{tableOrders.length} pendente{tableOrders.length > 1 ? "s" : ""}</span>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* CENTER: Comanda */}
+      <main className="pos-comanda">
+        {check ? (
+          <>
+            <div className="pos-comanda-header">
+              <div>
+                <p className="eyebrow">{check.tableName}</p>
+                <h2 className="pos-comanda-title">{check.customerName}</h2>
+                <span className={`status-badge ${check.status}`}>{checkStatusLabel(check.status)}</span>
+              </div>
+              <button
+                className="pos-add-btn"
+                onClick={() => { setPickerOpen(true); setPickerSearch(""); setPickerCat("all"); }}
+                disabled={check.status !== "open"}
+              >
+                <Plus size={16} />
+                Adicionar itens
+              </button>
+            </div>
+
+            <div className="pos-items-list">
+              {allItems.length === 0 && (
+                <div className="pos-items-empty">
+                  <ShoppingBag size={32} />
+                  <span>Nenhum item na comanda</span>
+                </div>
+              )}
+              {check.orders.map((order) => (
+                <div key={order.id} className="pos-order-group">
+                  <div className="pos-order-label">
+                    <span className={`pos-order-status ${order.status}`}>{ORDER_STATUS_LABEL[order.status]}</span>
+                    <small>{new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>
+                  </div>
+                  {order.items.map((item) => (
+                    <div key={item.id} className="pos-item-row">
+                      <span className="pos-item-qty">{item.quantity}×</span>
+                      <span className="pos-item-name">{item.productName}</span>
+                      <span className="pos-item-price">{formatCurrencyBRL(item.subtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <div className="pos-totals">
+              <div className="pos-total-row"><span>Subtotal</span><span>{formatCurrencyBRL(check.subtotal)}</span></div>
+              {check.serviceFeeEnabled && <div className="pos-total-row"><span>Taxa de serviço (10%)</span><span>{formatCurrencyBRL(check.serviceFee)}</span></div>}
+              {check.discount > 0 && <div className="pos-total-row discount"><span>Desconto</span><span>-{formatCurrencyBRL(check.discount)}</span></div>}
+              {check.paid > 0 && <div className="pos-total-row paid"><span>Pago</span><span>{formatCurrencyBRL(check.paid)}</span></div>}
+              <div className="pos-total-row grand"><span>Total</span><span>{formatCurrencyBRL(check.total)}</span></div>
+              {check.remaining > 0 && <div className="pos-total-row remaining"><span>Restante</span><span>{formatCurrencyBRL(check.remaining)}</span></div>}
+            </div>
+          </>
+        ) : (
+          <div className="pos-comanda-empty">
+            <ReceiptText size={48} />
+            <h3>Selecione uma mesa</h3>
+            <p>Clique em uma mesa ao lado ou busque pelo código da comanda</p>
+          </div>
+        )}
+        {error && <p className="inline-error" style={{ margin: "0 24px 16px" }}>{error}</p>}
+      </main>
+
+      {/* RIGHT: Pagamento */}
+      <aside className="pos-payment">
+        <div className="pos-payment-header">
+          <p className="eyebrow">Pagamento</p>
+          {check && <span className="pos-balance">{formatCurrencyBRL(check.remaining)}</span>}
+        </div>
+
+        {check ? (
+          <>
+            <div className="pos-adjustments">
+              <label className="pos-toggle">
+                <input
+                  type="checkbox"
+                  checked={serviceFeeEnabled}
+                  onChange={(e) => { setServiceFeeEnabled(e.target.checked); applyAdjustments({ serviceFeeEnabled: e.target.checked }); }}
+                />
+                <span>Taxa do garçom</span>
+                <strong>{serviceFeeEnabled ? "10%" : "Removida"}</strong>
+              </label>
+              <div className="pos-discount-row">
+                <span>Desconto (R$)</span>
+                <div className="pos-discount-input">
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    onBlur={() => applyAdjustments({ discount: Number(discount || 0) })}
+                    placeholder="0,00"
+                  />
+                  <button onClick={() => applyAdjustments({ discount: Number(discount || 0) })}>OK</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pos-methods">
+              {(["pix","credit_card","debit_card","cash"] as const).map((m) => (
+                <button key={m} className={`pos-method-btn${method === m ? " active" : ""}`} onClick={() => setMethod(m)}>
+                  {paymentMethodLabel(m)}
+                </button>
+              ))}
+            </div>
+
+            <label className="field">
+              Valor (R$)
+              <input
+                type="number" step="0.01" min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0,00"
+              />
+            </label>
+
+            {check.remaining > 0 && Number(amount) > 0 && Number(amount) < check.remaining && (
+              <p className="pos-change-hint">Pagamento parcial · resta {formatCurrencyBRL(check.remaining - Number(amount))}</p>
+            )}
+            {Number(amount) > check.remaining && check.remaining > 0 && (
+              <p className="pos-change-hint positive">Troco: {formatCurrencyBRL(Number(amount) - check.remaining)}</p>
+            )}
+
+            <button className="pos-pay-btn" disabled={!check.remaining || !amount || paying} onClick={pay}>
+              <CreditCard size={16} />
+              {paying ? "Registrando…" : "Registrar pagamento"}
+            </button>
+
+            {hasPending && (
+              <p className="pos-warning">
+                <Clock3 size={13} /> Há pedidos em preparo
+              </p>
+            )}
+
+            <button
+              className={`pos-close-btn${check.status === "closed" ? " closed" : ""}`}
+              disabled={check.remaining > 0 || hasPending || check.status !== "open" || closing}
+              onClick={close}
+            >
+              <CheckCircle2 size={16} />
+              {closing ? "Fechando…" : check.status === "closed" ? "Mesa fechada" : hasPending ? "Aguardando entrega" : "Fechar mesa"}
+            </button>
+
+            <button
+              className="ghost-button full"
+              style={{ marginTop: 8 }}
+              onClick={() => printThermalElement("[data-print-ticket='receipt']")
+                .then(() => props.onToast("Comprovante impresso"))
+                .catch(() => props.onToast("Falha ao imprimir"))}
+            >
+              <Printer size={15} />
+              Imprimir comprovante
+            </button>
+          </>
+        ) : (
+          <div className="pos-payment-empty">
+            <CreditCard size={28} />
+            <span>Aguardando comanda</span>
+          </div>
+        )}
+
+        {check && <ThermalReceipt restaurant={props.restaurant} check={check} />}
+      </aside>
+
+      {/* PRODUCT PICKER MODAL */}
+      {pickerOpen && (
+        <div className="pos-picker-backdrop" onClick={() => setPickerOpen(false)}>
+          <div className="pos-picker-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pos-picker-header">
+              <h3>Adicionar itens à comanda</h3>
+              <button className="icon-button" onClick={() => setPickerOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="pos-picker-toolbar">
+              <div className="pos-picker-search">
+                <Search size={14} />
+                <input
+                  value={pickerSearch}
+                  onChange={(e) => setPickerSearch(e.target.value)}
+                  placeholder="Buscar produto…"
+                  autoFocus
+                />
+              </div>
+              <div className="pos-picker-cats">
+                <button className={pickerCat === "all" ? "active" : ""} onClick={() => setPickerCat("all")}>Todos</button>
+                {props.categories.map((cat) => (
+                  <button key={cat.id} className={pickerCat === cat.id ? "active" : ""} onClick={() => setPickerCat(cat.id)}>
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pos-picker-grid">
+              {filteredProducts.map((product) => {
+                const qty = pickerQty[product.id] ?? 0;
+                return (
+                  <div key={product.id} className={`pos-picker-item${qty > 0 ? " selected" : ""}`}>
+                    <div className="pos-picker-item-info">
+                      <span className="pos-picker-item-name">{product.name}</span>
+                      <span className="pos-picker-item-price">{formatCurrencyBRL(product.price)}</span>
+                    </div>
+                    <div className="pos-picker-item-qty">
+                      {qty > 0 ? (
+                        <>
+                          <button onClick={() => setPickerQty((q) => { const n = { ...q }; if (n[product.id] <= 1) delete n[product.id]; else n[product.id]--; return n; })}>−</button>
+                          <span>{qty}</span>
+                          <button onClick={() => setPickerQty((q) => ({ ...q, [product.id]: (q[product.id] ?? 0) + 1 }))}>+</button>
+                        </>
+                      ) : (
+                        <button className="pos-picker-add" onClick={() => setPickerQty((q) => ({ ...q, [product.id]: 1 }))}>+</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {pickerCount > 0 && (
+              <div className="pos-picker-footer">
+                <span>{pickerCount} {pickerCount === 1 ? "item" : "itens"} · {formatCurrencyBRL(pickerTotal)}</span>
+                <button className="pos-pay-btn" onClick={confirmAddItems} disabled={addingItems}>
+                  {addingItems ? "Adicionando…" : "Confirmar"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOTEM DE PEDIDOS
+───────────────────────────────────────────────────────────────────────────── */
+type TotemStep = "idle" | "table" | "menu" | "confirm" | "success";
+
+function TotemPanel(props: {
+  restaurant: RestaurantSettings;
+  categories: Category[];
+  products: Product[];
+  tables: Table[];
+  customerQrs: CustomerQr[];
+  onConfigOpen?: () => void;
+}) {
+  const [step, setStep] = useState<TotemStep>("idle");
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [activeCat, setActiveCat] = useState<string>("all");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [removedIngredients, setRemovedIngredients] = useState<string[]>([]);
+  const [cart, setCart] = useState<Array<{ product: Product; quantity: number; removedIngredientIds: string[] }>>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [placing, setPlacing] = useState(false);
+  const [orderCode, setOrderCode] = useState("");
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetIdle = () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => resetTotem(), 3 * 60 * 1000);
+  };
+
+  const resetTotem = () => {
+    setStep("idle");
+    setSelectedTable(null);
+    setActiveCat("all");
+    setSelectedProduct(null);
+    setRemovedIngredients([]);
+    setCart([]);
+    setCartOpen(false);
+    setCustomerName("");
+    setOrderCode("");
+    setPlacing(false);
+  };
+
+  const openProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setRemovedIngredients([]);
+    resetIdle();
+  };
+
+  const toggleIngredient = (id: string) =>
+    setRemovedIngredients((r) => r.includes(id) ? r.filter((x) => x !== id) : [...r, id]);
+
+  const addToCart = (product: Product, removed: string[]) => {
+    setCart((c) => {
+      const existing = c.find((i) => i.product.id === product.id);
+      if (existing && removed.length === 0 && existing.removedIngredientIds.length === 0)
+        return c.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...c, { product, quantity: 1, removedIngredientIds: removed }];
+    });
+    setSelectedProduct(null);
+    setRemovedIngredients([]);
+    resetIdle();
+  };
+
+  const removeFromCart = (productId: string) => setCart((c) => c.filter((i) => i.product.id !== productId));
+  const updateQty = (productId: string, delta: number) =>
+    setCart((c) => c.map((i) => i.product.id === productId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i));
+
+  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  const placeOrder = async () => {
+    if (!selectedTable || !cart.length || placing) return;
+    setPlacing(true);
+    try {
+      const items = cart.map((i) => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+        customization: i.removedIngredientIds.length ? { removedIngredientIds: i.removedIngredientIds } : undefined
+      }));
+      const order = await api.createOrder({ tableId: selectedTable.id, customerName: customerName || "Totem", items });
+      setOrderCode(order.checkCode || order.id);
+      setStep("success");
+      setTimeout(() => resetTotem(), 8000);
+    } catch {
+      setPlacing(false);
     }
   };
 
   useEffect(() => {
-    if (checkCodeFromUrl) {
-      loadCheckByCode(checkCodeFromUrl);
-    }
-  }, []);
+    if (step !== "idle") resetIdle();
+    return () => { if (idleTimer.current) clearTimeout(idleTimer.current); };
+  }, [step]);
 
-  return (
-    <section className="cashier-layout">
-      <div className="module-header">
-        <div>
-          <p className="eyebrow">Caixa</p>
-          <h2>Fechamento de comanda</h2>
+  const filteredProducts = props.products.filter(
+    (p) => (activeCat === "all" || p.categoryId === activeCat) && p.active !== false && !p.temporarilyUnavailable
+  );
+
+  /* ── IDLE ── */
+  if (step === "idle") return (
+    <div className="totem totem-idle" onClick={() => setStep("table")}>
+      <div className="totem-idle-bg" />
+      <div className="totem-idle-content">
+        <div className="totem-logo-wrap">
+          <svg viewBox="-62 340 1028 410" preserveAspectRatio="xMidYMid meet">
+            <g transform="translate(-120 0)"><path fill="#eae6df" d="M173.81,592.91c.07,30.29,13.88,56.32,36.2,74.38,31.02,22.62,69.57,27.49,106.16,10.6l17.53,36.58c-36.28,16.82-74.5,18.54-111.24,5.49-52.64-18.7-89.32-67.8-89.38-124.5l-.2-187.3,40.66-.15.47,59.86,134.78-.15-.16,37.72-135,.09.19,87.38Z"/></g>
+            <g transform="translate(-485 0)"><path fill="#b9a784" d="M761.68,467l41.84-.47,34.95,64.83,3.23,5.84,84.81,152.61c5.26,9.9,15.16,9.73,21.46-.34l121.68-222.43,44.11.07-86.38,158.88-43.99,79.51c-9.06,16.37-22.96,28.09-41.05,29.37-17.56,1.24-37.98-5.51-47.32-22.45l-133.35-245.43Z"/></g>
+            <g transform="translate(-485 0)"><path fill="#b9a784" d="M979.61,352.41l-.02,89.63c0,12.67-8.23,23.16-18.5,28.7-15.68,8.46-9.23,22.13-13.49,33.01l-19.91.07c-2.75-12.91,2.17-25.31-13.25-33.15-9.59-4.88-18.18-14.86-18.23-26.77l-.38-90.61c-.02-4.24,4.5-9,7.9-9.29,5.08-.44,9.18,3.89,9.53,9.28l-.28,75.21c1.21,2.65,4.98,6.61,7.56,6.93,2.91.36,7.51-3.91,8.65-7l-.26-77.04c1.3-4.39,5.64-8.13,9.81-7.88,3.45.21,7.73,5.49,7.73,9.72l.1,74.91c0,3.22,5.78,7.7,8.7,7.36,4.29-.5,7.35-5.26,7.35-9.87l-.08-74.27c0-2.9,5.02-7.4,7.66-7.77,3.34-.48,9.41,3.54,9.41,8.83Z"/></g>
+            <g transform="translate(-820 0)"><path fill="#eae6df" d="M1745.43,581.97c-.18-52.19-46.02-87.4-95.44-83.11-50.17,4.36-82.12,43.66-81.93,93.01l.5,133.23-40.58.11.33-147.43c.11-51.05,33.55-94.95,81.17-111.88,41.82-14.86,87.19-10.47,124.09,14.35,32.39,21.78,52.56,57.87,52.66,97.17l.35,147.66-40.65.34-.49-143.45Z"/></g>
+          </svg>
         </div>
-        {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
-          <button className="icon-button" onClick={props.onConfigOpen} title="Configurar servidor">
-            <Settings2 size={17} />
-          </button>
-        )}
+        <h1 className="totem-idle-title">{props.restaurant.name}</h1>
+        <p className="totem-idle-sub">Toque para fazer seu pedido</p>
+        <div className="totem-tap-ring" />
       </div>
-      <div className="panel cashier-search">
-        <div className="scan-row">
-          <QrCode size={22} />
-          <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Escanear QR ou digitar codigo" />
-          <button className="primary-button" onClick={() => loadCheckByCode(code)}>
-            Buscar
-          </button>
-        </div>
-        {activeChecks.length > 0 && (
-          <div className="active-checks-panel">
-            <div className="panel-heading compact-heading">
-              <div>
-                <p className="eyebrow">Comandas ativas no momento</p>
-                <h3>Selecione direto pelo caixa</h3>
-              </div>
-              <span className="live-pill">{activeChecks.length} abertas</span>
-            </div>
-            <div className="active-check-grid">
-              {activeChecks.map((qr) => (
-                <button
-                  key={qr.id}
-                  className={check?.code === qr.currentCheckCode ? "active" : ""}
-                  onClick={() => loadCheckByCode(qr.currentCheckCode || qr.code)}
-                >
-                  <span>{tableNameFor(qr.currentTableId)}</span>
-                  <strong>{qr.label}</strong>
-                  <small>{qr.currentCheckCode || qr.code}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {error && <p className="inline-error">{error}</p>}
+      {window.tavonDesktop?.isDesktop && props.onConfigOpen && (
+        <button className="totem-config-btn" onClick={(e) => { e.stopPropagation(); props.onConfigOpen?.(); }}>
+          <Settings2 size={16} />
+        </button>
+      )}
+    </div>
+  );
+
+  /* ── TABLE SELECTION ── */
+  if (step === "table") return (
+    <div className="totem" onClick={resetIdle}>
+      <div className="totem-header">
+        <button className="totem-back" onClick={resetTotem}><X size={20} /></button>
+        <h2>Qual é a sua mesa?</h2>
+        <span />
       </div>
+      <div className="totem-table-grid">
+        {props.tables.filter((t) => t.status !== "disabled").map((table) => (
+          <button
+            key={table.id}
+            className={`totem-table-card${selectedTable?.id === table.id ? " selected" : ""}`}
+            onClick={() => { setSelectedTable(table); resetIdle(); }}
+          >
+            <span className="totem-table-num">{table.name}</span>
+            <span className="totem-table-cap">{table.capacity} lugares</span>
+          </button>
+        ))}
+      </div>
+      <div className="totem-footer">
+        <button className="totem-cta" disabled={!selectedTable} onClick={() => { setStep("menu"); resetIdle(); }}>
+          Continuar →
+        </button>
+      </div>
+    </div>
+  );
 
-      {check ? (
-        <>
-          <div className="panel receipt-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">{check.tableName}</p>
-                <h3>{check.customerName}</h3>
-                {check.ticket && <small className="ticket-meta">{check.ticket.number} · {new Date(check.ticket.issuedAt).toLocaleString("pt-BR")}</small>}
-              </div>
-              <span className={`status-badge ${check.status}`}>{checkStatusLabel(check.status)}</span>
-            </div>
-            {check.ticket && (
-              <div className="ticket-issued-banner">
-                <ReceiptText size={18} />
-                <div>
-                  <strong>Ticket registrado</strong>
-                  <small>
-                    {check.ticket.number} · {check.ticket.itemCount} {check.ticket.itemCount === 1 ? "item" : "itens"} · {formatCurrencyBRL(check.ticket.total)}
-                  </small>
-                </div>
-              </div>
-            )}
-            <div className="receipt-lines">
-              {check.orders.flatMap((order) =>
-                order.items.map((item) => (
-                  <div key={item.id}>
-                    <span>{item.quantity}x {item.productName}</span>
-                    <strong>{formatCurrencyBRL(item.subtotal)}</strong>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="totals">
-              <div>
-                <span>Subtotal</span>
-                <strong>{formatCurrencyBRL(check.subtotal)}</strong>
-              </div>
-              <div>
-                <span>Taxa de servico</span>
-                <strong>{formatCurrencyBRL(check.serviceFee)}</strong>
-              </div>
-              {check.discount > 0 && (
-                <div>
-                  <span>Desconto</span>
-                  <strong>-{formatCurrencyBRL(check.discount)}</strong>
-                </div>
-              )}
-              <div>
-                <span>Pago</span>
-                <strong>{formatCurrencyBRL(check.paid)}</strong>
-              </div>
-              <div className="grand-total">
-                <span>Total final</span>
-                <strong>{formatCurrencyBRL(check.total)}</strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel payment-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Pagamento</p>
-                <h3>Saldo {formatCurrencyBRL(check.remaining)}</h3>
-              </div>
-              <CreditCard size={21} />
-            </div>
-            <div className="cashier-adjustments">
-              <label className="toggle-row">
-                <input
-                  type="checkbox"
-                  checked={serviceFeeEnabled}
-                  onChange={(event) => {
-                    const enabled = event.target.checked;
-                    setServiceFeeEnabled(enabled);
-                    applyAdjustments({ serviceFeeEnabled: enabled });
-                  }}
-                />
-                <span>Taxa do garçom</span>
-                <strong>{serviceFeeEnabled ? formatCurrencyBRL(check.serviceFee) : "Removida"}</strong>
-              </label>
-              <label className="field compact-field">
-                Desconto
-                <div className="adjustment-row">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={discount}
-                    onChange={(event) => setDiscount(event.target.value)}
-                    onBlur={() => applyAdjustments({ discount: Number(discount || 0) })}
-                  />
-                  <button className="ghost-button" onClick={() => applyAdjustments({ discount: Number(discount || 0) })}>
-                    Aplicar
-                  </button>
-                </div>
-              </label>
-            </div>
-            <div className="segmented pay-methods">
-              {["pix", "credit_card", "debit_card", "cash", "split"].map((item) => (
-                <button key={item} className={method === item ? "active" : ""} onClick={() => setMethod(item)}>
-                  {paymentMethodLabel(item)}
-                </button>
-              ))}
-            </div>
-            <label className="field">
-              Valor
-              <input type="number" value={amount} onChange={(event) => setAmount(event.target.value)} />
-            </label>
-            <button className="primary-button full" disabled={!check.remaining} onClick={pay}>
-              Registrar pagamento
-            </button>
-            {hasPendingOrders && (
-              <p className="inline-error">
-                Esta comanda ainda tem pedido em preparo/pronto. Feche somente depois de marcar como entregue ou cancelado.
-              </p>
-            )}
-            <button className="checkout-button" disabled={check.remaining > 0 || hasPendingOrders || check.status !== "open"} onClick={close}>
-              <CheckCircle2 size={18} />
-              {check.status === "closed" ? "Comanda fechada" : hasPendingOrders ? "Aguardando entrega" : "Fechar comanda"}
-            </button>
+  /* ── MENU ── */
+  if (step === "menu") return (
+    <div className="totem" onClick={resetIdle}>
+      <div className="totem-header">
+        <button className="totem-back" onClick={() => setStep("table")}><X size={18} /></button>
+        <h2>{selectedTable?.name} · Cardápio</h2>
+        <button className="totem-cart-badge" onClick={() => setCartOpen(true)}>
+          <ShoppingBag size={20} />
+          {cartCount > 0 && <span>{cartCount}</span>}
+        </button>
+      </div>
+      <div className="totem-cats">
+        <button className={activeCat === "all" ? "active" : ""} onClick={() => { setActiveCat("all"); resetIdle(); }}>Tudo</button>
+        {props.categories.map((cat) => (
+          <button key={cat.id} className={activeCat === cat.id ? "active" : ""} onClick={() => { setActiveCat(cat.id); resetIdle(); }}>
+            {cat.name}
+          </button>
+        ))}
+      </div>
+      <div className="totem-menu-grid">
+        {filteredProducts.map((product) => {
+          const inCart = cart.find((i) => i.product.id === product.id);
+          return (
             <button
-              className="ghost-button full"
-              onClick={() =>
-                printThermalElement("[data-print-ticket='receipt']")
-                  .then(() => props.onToast("Comprovante enviado para impressao"))
-                  .catch((err) => props.onToast(err instanceof Error ? err.message : "Falha ao imprimir comprovante"))
-              }
+              key={product.id}
+              className={`totem-product-card${inCart ? " in-cart" : ""}`}
+              onClick={() => openProduct(product)}
             >
-              <Printer size={17} />
-              Reimprimir comprovante
+              <div className="totem-product-img">
+                {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <Utensils size={36} />}
+              </div>
+              <div className="totem-product-info">
+                <span className="totem-product-name">{product.name}</span>
+                {product.description && <span className="totem-product-desc">{product.description}</span>}
+                <span className="totem-product-price">{formatCurrencyBRL(product.price)}</span>
+              </div>
+              {inCart && <span className="totem-in-cart-badge">{inCart.quantity}</span>}
             </button>
+          );
+        })}
+      </div>
+
+      {cartCount > 0 && (
+        <button className="totem-float-cart" onClick={() => { setCartOpen(true); resetIdle(); }}>
+          <ShoppingBag size={18} />
+          <span>{cartCount} {cartCount === 1 ? "item" : "itens"}</span>
+          <strong>{formatCurrencyBRL(cartTotal)}</strong>
+          <span>→</span>
+        </button>
+      )}
+
+      {/* Product detail */}
+      {selectedProduct && (
+        <div className="totem-overlay" onClick={() => setSelectedProduct(null)}>
+          <div className="totem-product-detail" onClick={(e) => e.stopPropagation()}>
+            <button className="totem-overlay-close" onClick={() => setSelectedProduct(null)}><X size={22} /></button>
+            <div className="totem-detail-img">
+              {selectedProduct.imageUrl ? <img src={selectedProduct.imageUrl} alt={selectedProduct.name} /> : <Utensils size={64} />}
+            </div>
+            <div className="totem-detail-body">
+              <h2>{selectedProduct.name}</h2>
+              {selectedProduct.description && <p>{selectedProduct.description}</p>}
+              <span className="totem-detail-price">{formatCurrencyBRL(selectedProduct.price)}</span>
+
+              {selectedProduct.ingredients.filter((i) => i.removable).length > 0 && (
+                <div className="totem-ingredients">
+                  <p className="totem-ingredients-label">Remover ingredientes:</p>
+                  <div className="totem-ingredients-chips">
+                    {selectedProduct.ingredients.filter((i) => i.removable).map((ing) => (
+                      <button
+                        key={ing.id}
+                        className={`totem-ingredient-chip${removedIngredients.includes(ing.id) ? " removed" : ""}`}
+                        onClick={() => toggleIngredient(ing.id)}
+                      >
+                        {removedIngredients.includes(ing.id) ? <X size={13} /> : <span>−</span>}
+                        {ing.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button className="totem-cta" onClick={() => addToCart(selectedProduct, removedIngredients)}>
+                <Plus size={18} /> Adicionar ao pedido
+                {removedIngredients.length > 0 && <span className="totem-cta-hint">sem {removedIngredients.length} ingrediente{removedIngredients.length > 1 ? "s" : ""}</span>}
+              </button>
+            </div>
           </div>
-          <ThermalReceipt restaurant={props.restaurant} check={check} />
-        </>
-      ) : (
-        <div className="empty-panel">
-          <ReceiptText size={36} />
-          <p>Busque uma comanda para visualizar itens, dividir conta, registrar pagamentos e fechar a mesa.</p>
         </div>
       )}
-    </section>
+
+      {/* Cart drawer */}
+      {cartOpen && (
+        <div className="totem-overlay" onClick={() => setCartOpen(false)}>
+          <div className="totem-cart-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="totem-cart-header">
+              <h3>Seu pedido</h3>
+              <button onClick={() => setCartOpen(false)}><X size={20} /></button>
+            </div>
+            <div className="totem-cart-items">
+              {cart.map((item, idx) => (
+                <div key={`${item.product.id}-${idx}`} className="totem-cart-item">
+                  <div className="totem-cart-item-info">
+                    <span className="totem-cart-name">{item.product.name}</span>
+                    {item.removedIngredientIds.length > 0 && (
+                      <span className="totem-cart-removed">
+                        sem {item.product.ingredients.filter((i) => item.removedIngredientIds.includes(i.id)).map((i) => i.name).join(", ")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="totem-cart-controls">
+                    <button onClick={() => updateQty(item.product.id, -1)}>−</button>
+                    <span>{item.quantity}</span>
+                    <button onClick={() => updateQty(item.product.id, 1)}>+</button>
+                    <button className="totem-cart-remove" onClick={() => removeFromCart(item.product.id)}><Trash2 size={14} /></button>
+                  </div>
+                  <span className="totem-cart-sub">{formatCurrencyBRL(item.product.price * item.quantity)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="totem-cart-total">
+              <span>Total</span>
+              <strong>{formatCurrencyBRL(cartTotal)}</strong>
+            </div>
+            <button className="totem-cta" onClick={() => { setCartOpen(false); setStep("confirm"); resetIdle(); }}>
+              Finalizar pedido →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  /* ── CONFIRM ── */
+  if (step === "confirm") return (
+    <div className="totem" onClick={resetIdle}>
+      <div className="totem-header">
+        <button className="totem-back" onClick={() => setStep("menu")}><X size={18} /></button>
+        <h2>Confirmar pedido</h2>
+        <span />
+      </div>
+      <div className="totem-confirm-body">
+        <div className="totem-confirm-table">
+          <span>Mesa</span>
+          <strong>{selectedTable?.name}</strong>
+        </div>
+        <label className="field" style={{ margin: "0 0 20px" }}>
+          Seu nome (opcional)
+          <input value={customerName} onChange={(e) => { setCustomerName(e.target.value); resetIdle(); }} placeholder="Ex: João" />
+        </label>
+        <div className="totem-confirm-items">
+          {cart.map((item, idx) => (
+            <div key={`${item.product.id}-${idx}`} className="totem-confirm-item">
+              <div>
+                <span>{item.quantity}× {item.product.name}</span>
+                {item.removedIngredientIds.length > 0 && (
+                  <small style={{ display:"block", color:"rgba(234,230,223,.45)", fontSize:"12px", marginTop:2 }}>
+                    sem {item.product.ingredients.filter((i) => item.removedIngredientIds.includes(i.id)).map((i) => i.name).join(", ")}
+                  </small>
+                )}
+              </div>
+              <strong>{formatCurrencyBRL(item.product.price * item.quantity)}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="totem-confirm-total">
+          <span>Total do pedido</span>
+          <strong>{formatCurrencyBRL(cartTotal)}</strong>
+        </div>
+      </div>
+      <div className="totem-footer">
+        <button className="totem-cta" disabled={placing} onClick={placeOrder}>
+          {placing ? "Enviando…" : "Enviar pedido ✓"}
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ── SUCCESS ── */
+  return (
+    <div className="totem totem-success" onClick={resetTotem}>
+      <div className="totem-success-content">
+        <div className="totem-success-icon">✓</div>
+        <h1>Pedido enviado!</h1>
+        <p>Seu pedido foi recebido.<br />Já vamos preparar tudo!</p>
+        {orderCode && <div className="totem-success-code">#{orderCode.slice(-6).toUpperCase()}</div>}
+        <button className="totem-back-home" onClick={resetTotem}>Fazer novo pedido</button>
+      </div>
+    </div>
   );
 }
 

@@ -297,6 +297,33 @@ function createWindow() {
     mainWindow.loadURL(indexUrl.toString());
   }
 
+  // ── Module isolation (security) ──────────────────────────────────────────
+  // Non-admin modules: disable DevTools in production and block cross-module navigation
+  if (app.isPackaged && moduleName !== "admin") {
+    mainWindow.webContents.on("devtools-opened", () => {
+      mainWindow.webContents.closeDevTools();
+    });
+  }
+
+  // Block navigation to routes outside the licensed module scope
+  // Admin has unrestricted access; every other module is locked to its own path
+  if (moduleName !== "admin") {
+    const allowedBase = (moduleRoutes[moduleName] || "").split("?")[0]; // e.g. "/garcom"
+    mainWindow.webContents.on("will-navigate", (event, url) => {
+      try {
+        const parsed = new URL(url);
+        // File-protocol apps carry the route in ?appRoute param
+        const appRoute = parsed.searchParams.get("appRoute") || parsed.pathname;
+        const blocked = appRoute.startsWith("/admin") && !allowedBase.startsWith("/admin");
+        if (blocked) {
+          event.preventDefault();
+        }
+      } catch { /* malformed URL — let Electron handle it */ }
+    });
+    // Also guard new windows / popups
+    mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  }
+
   setupAutoUpdates(mainWindow);
 }
 
