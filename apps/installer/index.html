@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tavon Installer</title>
 <style>
+@font-face {
+  font-family: Tavon;
+  src: url('build/Tavon-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -51,17 +58,34 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: .08em;
-  color: var(--gold);
-  text-transform: uppercase;
+  font-family: Tavon, monospace;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0;
+  color: var(--text);
+  text-transform: none;
+  line-height: 1;
 }
-.logo-mark {
-  width: 28px; height: 28px;
-  background: var(--gold);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
+/* Wordmark v-stack (^ above v) */
+.wm-v-stack {
+  display: inline-block;
+  position: relative;
+  color: var(--gold);
+}
+.wm-fork {
+  position: absolute;
+  left: 50%;
+  top: -.55em;
+  transform: translateX(-50%);
+  font-size: .6em;
+  color: var(--gold);
+  line-height: 1;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-weight: 700;
+}
+.wm-v {
+  display: inline-block;
+  color: var(--gold);
 }
 .titlebar-sep {
   width: 1px; height: 18px;
@@ -413,13 +437,7 @@ body {
 <!-- ── Titlebar ──────────────────────────────────────────────────────────── -->
 <div class="titlebar">
   <div class="titlebar-logo">
-    <div class="logo-mark">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-              stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    Tavon
+    TA<span class="wm-v-stack"><span class="wm-fork">^</span><span class="wm-v">v</span></span>ON
   </div>
   <div class="titlebar-sep"></div>
   <div class="titlebar-sub">Suite Installer</div>
