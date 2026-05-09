@@ -1352,12 +1352,13 @@ textarea:focus {
 .product-card-img-wrap {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius);
+  margin: 8px 8px 0;
+  border-radius: calc(var(--radius) - 1px);
 }
 
 .product-card img {
   width: 100%;
-  height: 196px;
+  height: 188px;
   object-fit: cover;
   display: block;
   transition: transform 320ms ease;
