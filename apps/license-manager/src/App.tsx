@@ -279,6 +279,24 @@ function SetPasswordModal({
   );
 }
 
+// ─── Orbit Loader ────────────────────────────────────────────────────────────
+function Loader({ label = "Carregando..." }: { label?: string }) {
+  return (
+    <div className="tvn-loader-wrap">
+      <div className="tvn-orbit">
+        <div className="tvn-orbit-track" />
+        <div className="tvn-orbit-track tvn-orbit-inner" />
+        <div className="tvn-orbit-center">
+          <span className="mark-tavon tvn-orbit-mark" aria-hidden="true">
+            T<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>N
+          </span>
+        </div>
+      </div>
+      {label && <span className="tvn-loader-label">{label}</span>}
+    </div>
+  );
+}
+
 // ─── Login Page ───────────────────────────────────────────────────────────────
 function LoginPage({
   onLogin,
@@ -418,7 +436,7 @@ function ClientPortalPage({
 
       <main style={{ padding: "24px 24px 40px", maxWidth: 960, margin: "0 auto" }}>
         {loading ? (
-          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+          <Loader />
         ) : error ? (
           <div className="empty-state">
             <AlertCircle size={40} />
@@ -671,7 +689,7 @@ function DownloadsPage() {
       )}
 
       {loading ? (
-        <div className="loading-wrap"><div className="spinner" />Buscando releases no GitHub...</div>
+        <Loader label="Buscando releases no GitHub..." />
       ) : error ? (
         <div className="section-card">
           <div className="empty-state">
@@ -807,7 +825,7 @@ function DashboardPage({ toast }: { toast: (msg: string, type?: "success" | "err
       </div>
 
       {loading && !stats ? (
-        <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+        <Loader />
       ) : stats ? (
         <>
           <div className="stat-grid">
@@ -1055,7 +1073,7 @@ function ClientsPage({ toast }: { toast: (msg: string, type?: "success" | "error
 
       <div className="section-card">
         {loading ? (
-          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+          <Loader />
         ) : clients.length === 0 ? (
           <div className="empty-state"><Users size={48} /><p>Nenhum cliente encontrado</p></div>
         ) : (
@@ -1376,7 +1394,7 @@ function LicensesPage({ toast }: { toast: (msg: string, type?: "success" | "erro
 
       <div className="section-card">
         {loading ? (
-          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+          <Loader />
         ) : licenses.length === 0 ? (
           <div className="empty-state"><Key size={48} /><p>Nenhuma licença encontrada</p></div>
         ) : (
@@ -1609,7 +1627,7 @@ function AdminsPage({ toast, currentAdmin }: { toast: (msg: string, type?: "succ
 
       <div className="section-card">
         {loading ? (
-          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+          <Loader />
         ) : admins.length === 0 ? (
           <div className="empty-state"><Shield size={48} /><p>Nenhum administrador encontrado</p></div>
         ) : (
@@ -1905,7 +1923,7 @@ function PaymentsPage({ toast }: { toast: (msg: string, type?: "success" | "erro
 
       <div className="section-card">
         {loading ? (
-          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+          <Loader />
         ) : payments.length === 0 ? (
           <div className="empty-state"><CreditCard size={48} /><p>Nenhum pagamento encontrado</p></div>
         ) : (
@@ -2029,7 +2047,7 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
 
       <div className="section-card">
         {loading ? (
-          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+          <Loader />
         ) : filtered.length === 0 ? (
           <div className="empty-state">
             <MessageSquare size={48} />
