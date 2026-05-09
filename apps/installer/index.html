@@ -57,36 +57,35 @@ body {
 .titlebar-logo {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
+}
+/* Wordmark */
+.mark-tavon {
   font-family: Tavon, monospace;
   font-weight: 400;
   font-size: 22px;
   letter-spacing: 0;
-  color: var(--text);
-  text-transform: none;
   line-height: 1;
+  color: var(--text);
 }
-/* Wordmark v-stack (^ above v) */
 .wm-v-stack {
   display: inline-block;
   position: relative;
   color: var(--gold);
+  line-height: 1;
+  overflow: visible;
 }
 .wm-fork {
   position: absolute;
   left: 50%;
-  top: -.55em;
+  top: .08em;
   transform: translateX(-50%);
-  font-size: .6em;
-  color: var(--gold);
+  font-size: .72em;
   line-height: 1;
-  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
-  font-weight: 700;
-}
-.wm-v {
-  display: inline-block;
   color: var(--gold);
+  pointer-events: none;
 }
+.wm-v { color: var(--gold); }
 .titlebar-sep {
   width: 1px; height: 18px;
   background: var(--border);
@@ -437,7 +436,7 @@ body {
 <!-- ── Titlebar ──────────────────────────────────────────────────────────── -->
 <div class="titlebar">
   <div class="titlebar-logo">
-    TA<span class="wm-v-stack"><span class="wm-fork">^</span><span class="wm-v">v</span></span>ON
+    <span class="mark-tavon">TA<span class="wm-v-stack"><span class="wm-fork">^</span><span class="wm-v">v</span></span>ON</span>
   </div>
   <div class="titlebar-sep"></div>
   <div class="titlebar-sub">Suite Installer</div>
