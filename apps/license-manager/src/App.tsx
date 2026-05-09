@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type Page = "dashboard" | "clients" | "licenses" | "admins" | "payments";
+type Page = "dashboard" | "clients" | "licenses" | "admins" | "payments" | "downloads";
 
 interface Toast {
   id: number;
@@ -644,19 +644,20 @@ function ClientPortalPage({
   );
 }
 
-// ─── Dashboard Downloads Card ─────────────────────────────────────────────────
+// ─── Downloads Page ───────────────────────────────────────────────────────────
 const MODULES_INFO = [
-  { key: "admin",    label: "Tavon Admin",    pattern: /tavon-admin-setup/i },
-  { key: "cardapio", label: "Tavon Cardápio", pattern: /tavon-cardapio-setup/i },
-  { key: "garcom",   label: "Tavon Garçom",   pattern: /tavon-garcom-setup/i },
-  { key: "cozinha",  label: "Tavon Cozinha",  pattern: /tavon-cozinha-setup/i },
-  { key: "caixa",    label: "Tavon Caixa",    pattern: /tavon-caixa-setup/i },
+  { key: "admin",    label: "Tavon Admin",    desc: "Painel administrativo completo",   pattern: /tavon-admin-setup/i,    color: "#6366f1" },
+  { key: "cardapio", label: "Tavon Cardápio", desc: "Cardápio digital para mesas/QR",   pattern: /tavon-cardapio-setup/i, color: "#10b981" },
+  { key: "garcom",   label: "Tavon Garçom",   desc: "App para garçons e atendimento",   pattern: /tavon-garcom-setup/i,   color: "#f59e0b" },
+  { key: "cozinha",  label: "Tavon Cozinha",  desc: "Monitor de pedidos para cozinha",  pattern: /tavon-cozinha-setup/i,  color: "#ef4444" },
+  { key: "caixa",    label: "Tavon Caixa",    desc: "Controle de caixa e pagamentos",   pattern: /tavon-caixa-setup/i,    color: "#3b82f6" },
 ];
 
-function DownloadsCard() {
-  const [downloads, setDownloads] = useState<Record<string, { url: string; version: string; name: string }>>({});
+function DownloadsPage() {
+  const [downloads, setDownloads] = useState<Record<string, { url: string; version: string; name: string; size?: number }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -665,7 +666,7 @@ function DownloadsCard() {
       const res = await fetch("https://api.github.com/repos/renezit0/tavon/releases?per_page=30");
       if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
       const releases: any[] = await res.json();
-      const found: Record<string, { url: string; version: string; name: string }> = {};
+      const found: Record<string, { url: string; version: string; name: string; size?: number }> = {};
 
       for (const release of releases) {
         if (release.draft) continue;
@@ -676,6 +677,7 @@ function DownloadsCard() {
                 url: asset.browser_download_url,
                 version: release.tag_name,
                 name: asset.name,
+                size: asset.size,
               };
             }
           }
@@ -684,8 +686,9 @@ function DownloadsCard() {
       }
 
       setDownloads(found);
+      setLastCheck(new Date());
     } catch (err: any) {
-      setError(err.message || "Erro ao buscar releases");
+      setError(err.message || "Erro ao buscar releases no GitHub");
     } finally {
       setLoading(false);
     }
@@ -693,68 +696,132 @@ function DownloadsCard() {
 
   useEffect(() => { load(); }, [load]);
 
+  function formatSize(bytes?: number) {
+    if (!bytes) return "";
+    return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+  }
+
   return (
-    <div className="section-card">
-      <div className="section-card-header">
-        <span className="section-card-title">Downloads — Última versão</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <div className="page-title">Downloads</div>
+          <div className="page-subtitle">Última versão de cada módulo publicada no GitHub</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
           <a
             href="https://github.com/renezit0/tavon/releases"
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-ghost"
-            style={{ fontSize: 12, padding: "4px 10px", minHeight: 30 }}
           >
-            <ExternalLink size={12} />
-            Ver todas
+            <ExternalLink size={14} />
+            Todas as versões
           </a>
-          <button className="btn btn-ghost" onClick={load} disabled={loading} style={{ fontSize: 12, padding: "4px 10px", minHeight: 30 }}>
-            <RefreshCw size={12} />
+          <button className="btn btn-ghost" onClick={load} disabled={loading}>
+            <RefreshCw size={14} />
+            Atualizar
           </button>
         </div>
       </div>
 
+      {lastCheck && (
+        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
+          Última verificação: {lastCheck.toLocaleTimeString("pt-BR")}
+        </p>
+      )}
+
       {loading ? (
-        <div className="loading-wrap" style={{ padding: "20px 0" }}><div className="spinner" />Buscando releases...</div>
+        <div className="loading-wrap"><div className="spinner" />Buscando releases no GitHub...</div>
       ) : error ? (
-        <div style={{ padding: "16px 20px", color: "var(--muted)", fontSize: 13 }}>
-          <AlertCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-          {error}
+        <div className="section-card">
+          <div className="empty-state">
+            <AlertCircle size={40} />
+            <p>{error}</p>
+            <button className="btn btn-primary" onClick={load}><RefreshCw size={14} />Tentar novamente</button>
+          </div>
         </div>
       ) : (
-        <div style={{ padding: "4px 16px 16px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {MODULES_INFO.map((mod) => {
             const dl = downloads[mod.key];
             return (
-              <div key={mod.key} style={{
-                background: "var(--surface2)",
-                borderRadius: 10,
-                padding: "12px 14px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{mod.label}</div>
-                {dl ? (
-                  <>
-                    <div style={{ fontSize: 11, color: "var(--muted)" }}>{dl.version}</div>
-                    <a
-                      href={dl.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-primary"
-                      style={{ fontSize: 12, padding: "5px 10px", minHeight: 28, marginTop: 4, textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
-                    >
-                      <Download size={12} />
-                      Baixar .exe
-                    </a>
-                  </>
-                ) : (
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Não encontrado</div>
-                )}
+              <div key={mod.key} className="section-card" style={{ padding: 0, overflow: "hidden" }}>
+                {/* Color bar */}
+                <div style={{ height: 4, background: mod.color, borderRadius: "10px 10px 0 0" }} />
+                <div style={{ padding: "20px 22px 22px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{mod.label}</div>
+                      <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>{mod.desc}</div>
+                    </div>
+                    {dl && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, color: mod.color,
+                        background: `${mod.color}18`, borderRadius: 6, padding: "2px 8px",
+                        whiteSpace: "nowrap", marginLeft: 8,
+                      }}>
+                        {dl.version}
+                      </span>
+                    )}
+                  </div>
+
+                  {dl ? (
+                    <>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 14, fontFamily: "monospace" }}>
+                        {dl.name}
+                        {dl.size ? <span style={{ marginLeft: 8 }}>· {formatSize(dl.size)}</span> : ""}
+                      </div>
+                      <a
+                        href={dl.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-primary"
+                        style={{ width: "100%", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        <Download size={14} />
+                        Baixar instalador (.exe)
+                      </a>
+                    </>
+                  ) : (
+                    <div style={{
+                      marginTop: 14, padding: "10px 14px", borderRadius: 8,
+                      background: "var(--surface2)", fontSize: 12, color: "var(--muted)",
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}>
+                      <AlertCircle size={13} />
+                      Nenhuma release encontrada
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Universal installer note */}
+      {!loading && !error && (
+        <div className="section-card" style={{ marginTop: 16 }}>
+          <div className="section-card-header">
+            <span className="section-card-title">Instalador universal (PowerShell)</span>
+          </div>
+          <div style={{ padding: "0 20px 18px" }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14, lineHeight: 1.6 }}>
+              O instalador universal permite selecionar e instalar múltiplos módulos de uma vez.
+              Baixe o script e execute no PowerShell do Windows como administrador.
+            </p>
+            <a
+              href="https://github.com/renezit0/tavon/releases/latest/download/Tavon-Install.ps1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <Download size={14} />
+              Baixar Tavon-Install.ps1
+            </a>
+          </div>
         </div>
       )}
     </div>
@@ -861,7 +928,6 @@ function DashboardPage({ toast }: { toast: (msg: string, type?: "success" | "err
         </>
       ) : null}
 
-      <DownloadsCard />
     </div>
   );
 }
@@ -2048,6 +2114,7 @@ export default function App() {
     { id: "licenses",  label: "Licenças",          icon: <Key size={16} /> },
     { id: "payments",  label: "Pagamentos",        icon: <CreditCard size={16} /> },
     { id: "admins",    label: "Administradores",   icon: <Shield size={16} /> },
+    { id: "downloads", label: "Downloads",         icon: <Download size={16} /> },
   ];
 
   return (
@@ -2099,6 +2166,7 @@ export default function App() {
         {page === "licenses"  && <LicensesPage toast={toast} />}
         {page === "payments"  && <PaymentsPage toast={toast} />}
         {page === "admins"    && <AdminsPage toast={toast} currentAdmin={admin} />}
+        {page === "downloads" && <DownloadsPage />}
       </main>
 
       <ToastContainer toasts={toasts} remove={removeToast} />
