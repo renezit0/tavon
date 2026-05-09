@@ -1351,9 +1351,7 @@ textarea:focus {
 
 .product-card-img-wrap {
   position: relative;
-  overflow: hidden;
-  margin: 8px 8px 0;
-  border-radius: calc(var(--radius) - 1px);
+  padding: 8px 8px 0;
 }
 
 .product-card img {
@@ -1361,6 +1359,7 @@ textarea:focus {
   height: 188px;
   object-fit: cover;
   display: block;
+  border-radius: calc(var(--radius) - 1px);
   transition: transform 320ms ease;
 }
 
