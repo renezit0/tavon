@@ -333,8 +333,7 @@ function LoginPage({
     <div className="login-page">
       <div className="login-card" style={{ width: "min(420px, calc(100vw - 32px))" }}>
         <div className="login-logo">
-          <img src="/tavonlogowhite.png" alt="Tavon" className="login-logo-img login-logo-dark" />
-          <img src="/tavonlogo.png"      alt="Tavon" className="login-logo-img login-logo-light" />
+          <span className="mark-tavon login-wordmark" aria-label="Tavon">TA<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>ON</span>
           <span className="login-logo-tag">Gestão de Licenças</span>
         </div>
 
@@ -462,8 +461,7 @@ function ClientPortalPage({
     <div className="app">
       <header className="topbar">
         <div className="topbar-logo">
-          <img src="/tavonlogowhite.png" alt="Tavon" className="topbar-logo-img topbar-logo-dark" />
-          <img src="/tavonlogo.png"      alt="Tavon" className="topbar-logo-img topbar-logo-light" />
+          <span className="mark-tavon topbar-wordmark" aria-label="Tavon">TA<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>ON</span>
           <span className="topbar-label">Portal do Cliente</span>
         </div>
         <div className="topbar-right">
@@ -2126,8 +2124,7 @@ export default function App() {
           <Menu size={18} />
         </button>
         <div className="topbar-logo">
-          <img src="/tavonlogowhite.png" alt="Tavon" className="topbar-logo-img topbar-logo-dark" />
-          <img src="/tavonlogo.png"      alt="Tavon" className="topbar-logo-img topbar-logo-light" />
+          <span className="mark-tavon topbar-wordmark" aria-label="Tavon">TA<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>ON</span>
           <span className="topbar-label">Licenças</span>
         </div>
         <div className="topbar-right">

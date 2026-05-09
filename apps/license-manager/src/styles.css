@@ -1,5 +1,39 @@
 /* ── Tavon License Manager ── */
 
+@font-face {
+  font-family: Tavon;
+  src: url('/Tavon-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ── Wordmark ── */
+.mark-tavon {
+  font-family: Tavon, monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.wm-v-stack {
+  display: inline-block;
+  position: relative;
+  color: var(--gold);
+  line-height: 1;
+  overflow: visible;
+}
+.wm-fork {
+  position: absolute;
+  left: 50%;
+  top: .08em;
+  transform: translateX(-50%);
+  font-size: .72em;
+  line-height: 1;
+  color: var(--gold);
+  pointer-events: none;
+}
+.wm-v { color: var(--gold); }
+
 :root {
   --bg:          #0f1110;
   --surface:     #171917;
@@ -111,11 +145,7 @@ button, input, select, textarea { font: inherit; border: 0; outline: none; }
 .topbar-hamburger:hover { background: var(--surface-2); }
 
 .topbar-logo { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-.topbar-logo-img { height: 24px; width: auto; object-fit: contain; }
-.topbar-logo-dark  { display: block; }
-.topbar-logo-light { display: none; }
-[data-theme="light"] .topbar-logo-dark  { display: none; }
-[data-theme="light"] .topbar-logo-light { display: block; }
+.topbar-wordmark { font-size: 20px; color: var(--text); }
 
 .topbar-label {
   font-size: 11px;
@@ -517,11 +547,7 @@ td.muted { color: var(--muted); font-size: 13px; }
   gap: 14px;
   text-align: center;
 }
-.login-logo-img { height: 30px; width: auto; object-fit: contain; }
-.login-logo-dark  { display: block; }
-.login-logo-light { display: none; }
-[data-theme="light"] .login-logo-dark  { display: none; }
-[data-theme="light"] .login-logo-light { display: block; }
+.login-wordmark { font-size: 32px; color: var(--text); }
 
 .login-logo-tag {
   font-size: 11px;
