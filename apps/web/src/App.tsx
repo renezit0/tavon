@@ -237,7 +237,7 @@ const defaultRestaurant: RestaurantSettings = {
   id: "loading",
   tenantId: "tenant_demo",
   name: "Tavon",
-  logoUrl: "",
+  logoUrl: "/tavonlogowhite.png",
   coverUrl: "",
   serviceFeePercent: 10,
   averageDeliveryMinutes: 20,
@@ -270,9 +270,11 @@ function resolveAssetUrl(url: string) {
 }
 
 function themedLogoUrl(restaurant: RestaurantSettings) {
-  // Empty logoUrl or default Tavon image → use wordmark (rendered in JSX)
-  if (!restaurant.logoUrl || restaurant.logoUrl.includes("tavonlogo")) return "";
-  return resolveAssetUrl(restaurant.logoUrl);
+  if (!restaurant.logoUrl) return restaurant.theme.mode === "light" ? "/tavonlogo.png" : "/tavonlogowhite.png";
+  const isDark = restaurant.theme.mode !== "light";
+  const isTavonLogo = restaurant.logoUrl.includes("tavonlogo");
+  const url = isDark && isTavonLogo ? "/tavonlogowhite.png" : restaurant.logoUrl;
+  return resolveAssetUrl(url);
 }
 
 async function printThermalElement(selector: string) {
@@ -553,13 +555,7 @@ function App() {
       {showOperationalShell && (
         <aside className="rail">
           <button className="brand-mark" onClick={() => navigate("/")} title="Inicio">
-            {logoUrl && !logoUrl.includes("tavonlogo") ? (
-              <img src={logoUrl} alt="" />
-            ) : (
-              <span className="mark-tavon">
-                T<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>N
-              </span>
-            )}
+            {logoUrl ? <img src={logoUrl} alt="" /> : <Utensils />}
           </button>
           <nav>
             {routeLinks.map((link) => {
@@ -2446,13 +2442,7 @@ function CustomerMenu(props: {
     <section className="client-page">
       <header className="client-header">
         <button className="client-brand" onClick={() => props.navigate("/cardapio?table=M01")}>
-          {logoUrl ? (
-            <img src={logoUrl} alt="" />
-          ) : (
-            <span className="mark-tavon" style={{ fontSize: "1rem" }}>
-              T<span className="wm-v-stack"><span className="wm-fork">^</span><span className="wm-v">v</span></span>N
-            </span>
-          )}
+          {logoUrl ? <img src={logoUrl} alt="" /> : <Utensils size={20} />}
           <span>{props.restaurant.name}</span>
         </button>
         <div className="client-header-actions">
