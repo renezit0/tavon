@@ -1,0 +1,43 @@
+{
+  "name": "tavon-installer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tavon Suite — Instalador Personalizado",
+  "author": "Tavon",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "dist:win": "electron-builder --win nsis --x64",
+    "dist:win:only": "electron-builder --win nsis --x64 --config.publish=never"
+  },
+  "build": {
+    "appId": "com.tavon.installer",
+    "productName": "Tavon Installer",
+    "directories": {
+      "output": "../../release/installer"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "index.html",
+      "package.json",
+      "build/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  },
+  "devDependencies": {
+    "electron": "35.0.0",
+    "electron-builder": "26.8.1"
+  }
+}
