@@ -1,6 +1,6 @@
 {
   "name": "@tavon/mobile",
-  "version": "1.0.0",
+  "version": "0.1.14",
   "private": true,
   "description": "Tavon Cardápio — Android APK via Capacitor",
   "scripts": {
