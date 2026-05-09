@@ -2533,6 +2533,15 @@ function CustomerMenu(props: {
             ))}
         </div>
 
+        <div className="menu-section-head">
+          <span>
+            {selectedCategory === "all"
+              ? "Todos os itens"
+              : props.categories.find((c) => c.id === selectedCategory)?.name ?? "Cardápio"}
+          </span>
+          <span className="menu-section-count">{filteredProducts.length} {filteredProducts.length === 1 ? "item" : "itens"}</span>
+        </div>
+
         <div className="product-grid">
           {filteredProducts.map((product) => (
             <article key={product.id} className="product-card" onClick={() => setSelectedProduct(product)}>
@@ -2540,7 +2549,7 @@ function CustomerMenu(props: {
                 <img src={product.imageUrl} alt="" />
                 {product.preparationMinutes > 0 && (
                   <span className="product-card-badge">
-                    <Clock3 size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                    <Clock3 size={11} />
                     {product.preparationMinutes} min
                   </span>
                 )}
@@ -2551,7 +2560,7 @@ function CustomerMenu(props: {
                 <div className="product-card-footer">
                   <strong>{formatCurrencyBRL(product.price)}</strong>
                   <button className="primary-button" onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); }}>
-                    <Plus size={17} />
+                    <Plus size={16} />
                     Adicionar
                   </button>
                 </div>
