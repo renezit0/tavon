@@ -646,11 +646,12 @@ function ClientPortalPage({
 
 // ─── Downloads Page ───────────────────────────────────────────────────────────
 const MODULES_INFO = [
-  { key: "admin",    label: "Tavon Admin",    desc: "Painel administrativo completo",   pattern: /tavon-admin-setup/i,    color: "#6366f1" },
-  { key: "cardapio", label: "Tavon Cardápio", desc: "Cardápio digital para mesas/QR",   pattern: /tavon-cardapio-setup/i, color: "#10b981" },
-  { key: "garcom",   label: "Tavon Garçom",   desc: "App para garçons e atendimento",   pattern: /tavon-garcom-setup/i,   color: "#f59e0b" },
-  { key: "cozinha",  label: "Tavon Cozinha",  desc: "Monitor de pedidos para cozinha",  pattern: /tavon-cozinha-setup/i,  color: "#ef4444" },
-  { key: "caixa",    label: "Tavon Caixa",    desc: "Controle de caixa e pagamentos",   pattern: /tavon-caixa-setup/i,    color: "#3b82f6" },
+  { key: "admin",    label: "Tavon Admin",    desc: "Painel administrativo completo",   pattern: /tavon-admin-setup/i,    color: "#6366f1", ext: "exe" },
+  { key: "cardapio", label: "Tavon Cardápio", desc: "Cardápio digital para mesas/QR",   pattern: /tavon-cardapio-setup/i, color: "#10b981", ext: "exe" },
+  { key: "garcom",   label: "Tavon Garçom",   desc: "App para garçons e atendimento",   pattern: /tavon-garcom-setup/i,   color: "#f59e0b", ext: "exe" },
+  { key: "cozinha",  label: "Tavon Cozinha",  desc: "Monitor de pedidos para cozinha",  pattern: /tavon-cozinha-setup/i,  color: "#ef4444", ext: "exe" },
+  { key: "caixa",    label: "Tavon Caixa",    desc: "Controle de caixa e pagamentos",   pattern: /tavon-caixa-setup/i,    color: "#3b82f6", ext: "exe" },
+  { key: "cardapio-apk", label: "Tavon Cardápio", desc: "Android — cardápio para tablets/celulares", pattern: /tavon-cardapio.*\.apk/i, color: "#10b981", ext: "apk" },
 ];
 
 function DownloadsPage() {
@@ -672,7 +673,7 @@ function DownloadsPage() {
         if (release.draft) continue;
         for (const asset of (release.assets || [])) {
           for (const mod of MODULES_INFO) {
-            if (!found[mod.key] && mod.pattern.test(asset.name) && asset.name.endsWith(".exe")) {
+            if (!found[mod.key] && mod.pattern.test(asset.name) && asset.name.endsWith(`.${mod.ext}`)) {
               found[mod.key] = {
                 url: asset.browser_download_url,
                 version: release.tag_name,
@@ -780,7 +781,7 @@ function DownloadsPage() {
                         style={{ width: "100%", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                       >
                         <Download size={14} />
-                        Baixar instalador (.exe)
+                        Baixar {mod.ext === "apk" ? "APK (.apk)" : "instalador (.exe)"}
                       </a>
                     </>
                   ) : (
