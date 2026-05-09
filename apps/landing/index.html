@@ -357,6 +357,39 @@ html[data-theme="light"] .cta-sec{background:linear-gradient(180deg,#efe7d8 0%,#
 .cta-inp::placeholder{color:var(--faint)}
 .cta-note{font-size:.75rem; color:var(--faint); margin-top:1rem}
 
+/* ── Demo Modal ── */
+.demo-overlay{position:fixed;inset:0;z-index:9000;background:rgba(11,12,15,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
+.demo-overlay.open{opacity:1;pointer-events:all}
+.demo-modal{background:var(--ink2);border:1px solid var(--line2);border-radius:20px;padding:clamp(28px,5vw,44px);width:min(560px,100%);position:relative;transform:translateY(24px) scale(.97);transition:transform .3s var(--ease);box-shadow:0 48px 96px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04)}
+.demo-overlay.open .demo-modal{transform:translateY(0) scale(1)}
+.demo-modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer;display:grid;place-items:center;font-size:16px;transition:all .2s}
+.demo-modal-close:hover{border-color:var(--g);color:var(--g)}
+.demo-modal-head{margin-bottom:28px}
+.demo-modal-kicker{font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--g);margin-bottom:10px}
+.demo-modal-title{font-family:var(--ser);font-weight:300;font-size:clamp(1.5rem,4vw,2rem);line-height:1.1;margin-bottom:8px}
+.demo-modal-title em{color:var(--g2);font-style:italic}
+.demo-modal-sub{font-size:.875rem;color:var(--dim);line-height:1.6}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.demo-field{display:flex;flex-direction:column;gap:6px}
+.demo-field.full{grid-column:1/-1}
+.demo-field label{font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--g)}
+.demo-field input,.demo-field textarea{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;padding:.75rem 1rem;color:var(--off);font-family:var(--sans);font-size:.875rem;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;resize:none}
+html[data-theme="light"] .demo-field input,html[data-theme="light"] .demo-field textarea{background:rgba(0,0,0,.04);color:var(--off)}
+.demo-field input:focus,.demo-field textarea:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(185,167,132,.12)}
+.demo-field input::placeholder,.demo-field textarea::placeholder{color:var(--faint)}
+.demo-field input.err{border-color:#f87171;box-shadow:0 0 0 3px rgba(248,113,113,.1)}
+.demo-actions{display:flex;align-items:center;justify-content:space-between;margin-top:22px;gap:12px;flex-wrap:wrap}
+.demo-fine{font-size:.72rem;color:var(--faint)}
+.demo-submit{position:relative;overflow:hidden;background:var(--g);border:0;border-radius:8px;padding:.85rem 2rem;color:var(--ink);font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .22s;white-space:nowrap}
+.demo-submit::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.18),transparent 55%)}
+.demo-submit:hover{background:var(--g2);transform:translateY(-1px);box-shadow:0 8px 22px rgba(185,167,132,.28)}
+.demo-submit:disabled{opacity:.6;cursor:default;transform:none}
+.demo-success{text-align:center;padding:20px 0}
+.demo-success-icon{font-size:2.5rem;margin-bottom:14px}
+.demo-success-title{font-family:var(--ser);font-weight:300;font-size:1.5rem;margin-bottom:8px;color:var(--g2)}
+.demo-success-sub{color:var(--dim);font-size:.875rem;line-height:1.6}
+@media(max-width:500px){.demo-grid{grid-template-columns:1fr}}
+
 /* ===== Footer ===== */
 footer{padding:clamp(3rem,6vw,4.5rem) clamp(1rem,5%,4rem) 1.8rem; background:var(--ink); border-top:1px solid var(--line)}
 .foot-g{display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:clamp(2rem,4vw,4rem); margin-bottom:2.5rem; max-width:1200px; margin-left:auto; margin-right:auto}
@@ -429,7 +462,7 @@ footer{padding:clamp(3rem,6vw,4.5rem) clamp(1rem,5%,4rem) 1.8rem; background:var
   </ul>
   <div class="nav-actions">
     <button class="theme-toggle" id="themeToggle" type="button" aria-label="Ativar modo claro" aria-pressed="false">☼</button>
-    <button class="nav-cta" onclick="goto('cta')">Solicitar demo</button>
+    <button class="nav-cta" onclick="openDemoModal()">Solicitar demo</button>
   </div>
 </nav>
 
@@ -473,7 +506,7 @@ footer{padding:clamp(3rem,6vw,4.5rem) clamp(1rem,5%,4rem) 1.8rem; background:var
     <h1 class="hero-title">A revolução do seu <span class="accent">restaurante</span></h1>
     <p class="hero-sub">Cardápio digital, gestão de pedidos em tempo real, integração com cozinha e controle de comandas via QR Code — tudo em uma plataforma elegante e intuitiva.</p>
     <div class="hero-btns">
-      <button class="btn-fill" onclick="goto('cta')">Agendar demonstração</button>
+      <button class="btn-fill" onclick="openDemoModal()">Agendar demonstração</button>
       <button class="btn-out" onclick="goto('steps')">Ver como funciona</button>
     </div>
   </div>
@@ -695,12 +728,60 @@ footer{padding:clamp(3rem,6vw,4.5rem) clamp(1rem,5%,4rem) 1.8rem; background:var
     <h2 class="cta-h">Pronto para <em>transformar</em><br/>seu restaurante?</h2>
     <p class="cta-p">Agende uma demonstração gratuita e veja o Tavon funcionando ao vivo. Nossa equipe responde em até 24 horas.</p>
     <div class="cta-form">
-      <input class="cta-inp" id="einp" type="email" placeholder="Seu melhor e-mail"/>
-      <button class="btn-fill" id="ctabtn" onclick="sendCTA()">Quero uma demo</button>
+      <button class="btn-fill" onclick="openDemoModal()">Agendar demonstração gratuita</button>
     </div>
     <p class="cta-note">Sem compromisso · demonstração 100% gratuita</p>
   </div>
 </section>
+
+<!-- ══ DEMO MODAL ══ -->
+<div class="demo-overlay" id="demoOverlay" role="dialog" aria-modal="true" aria-labelledby="demoTitle">
+  <div class="demo-modal" id="demoModal">
+    <button class="demo-modal-close" id="demoClose" aria-label="Fechar">✕</button>
+
+    <div id="demoForm">
+      <div class="demo-modal-head">
+        <div class="demo-modal-kicker">Demonstração gratuita</div>
+        <h2 class="demo-modal-title" id="demoTitle">Veja o Tavon <em>ao vivo</em></h2>
+        <p class="demo-modal-sub">Preencha o formulário e nossa equipe entrará em contato em até 24 horas para agendar uma demonstração personalizada.</p>
+      </div>
+
+      <div class="demo-grid">
+        <div class="demo-field">
+          <label for="d-name">Nome *</label>
+          <input id="d-name" type="text" placeholder="Seu nome completo" autocomplete="name" />
+        </div>
+        <div class="demo-field">
+          <label for="d-company">Empresa *</label>
+          <input id="d-company" type="text" placeholder="Nome do restaurante" autocomplete="organization" />
+        </div>
+        <div class="demo-field">
+          <label for="d-email">E-mail *</label>
+          <input id="d-email" type="email" placeholder="contato@restaurante.com" autocomplete="email" />
+        </div>
+        <div class="demo-field">
+          <label for="d-phone">Telefone</label>
+          <input id="d-phone" type="tel" placeholder="(00) 00000-0000" autocomplete="tel" />
+        </div>
+        <div class="demo-field full">
+          <label for="d-message">Mensagem</label>
+          <textarea id="d-message" rows="3" placeholder="Conte um pouco sobre seu restaurante ou dúvidas que tiver..."></textarea>
+        </div>
+      </div>
+
+      <div class="demo-actions">
+        <span class="demo-fine">Sem compromisso · 100% gratuito</span>
+        <button class="demo-submit" id="demoSubmit" onclick="submitDemo()">Agendar demonstração</button>
+      </div>
+    </div>
+
+    <div class="demo-success" id="demoSuccess" style="display:none">
+      <div class="demo-success-icon">✦</div>
+      <div class="demo-success-title">Solicitação enviada!</div>
+      <p class="demo-success-sub">Nossa equipe recebeu seu contato e retornará em breve para agendar sua demonstração gratuita.</p>
+    </div>
+  </div>
+</div>
 
 <!-- ══ FOOTER ══ -->
 <footer>
@@ -843,29 +924,62 @@ document.querySelectorAll('.stats-grid').forEach(g => co.observe(g));
 const on = document.getElementById('onew');
 if (on) setInterval(() => { on.classList.remove('fl'); void on.offsetWidth; on.classList.add('fl'); }, 4200);
 
-/* CTA — envia para API */
-window.sendCTA = async function(){
-  const i = document.getElementById('einp'), b = document.getElementById('ctabtn');
-  if (!i.value || !i.value.includes('@')) {
-    i.style.borderColor = '#f87171'; i.style.boxShadow = '0 0 0 3px rgba(248,113,113,.12)'; i.focus();
-    setTimeout(() => { i.style.borderColor = ''; i.style.boxShadow = ''; }, 1400);
-    return;
-  }
-  const email = i.value.trim();
-  b.textContent = 'Enviando...'; b.disabled = true; i.disabled = true;
+/* Demo Modal */
+const overlay = document.getElementById('demoOverlay');
+const demoClose = document.getElementById('demoClose');
+
+window.openDemoModal = function() {
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('d-name').focus(), 80);
+};
+
+function closeDemoModal() {
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+demoClose.onclick = closeDemoModal;
+overlay.onclick = function(e) { if (e.target === overlay) closeDemoModal(); };
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDemoModal(); });
+
+window.submitDemo = async function() {
+  const name    = document.getElementById('d-name').value.trim();
+  const company = document.getElementById('d-company').value.trim();
+  const email   = document.getElementById('d-email').value.trim();
+  const phone   = document.getElementById('d-phone').value.trim();
+  const message = document.getElementById('d-message').value.trim();
+  const btn     = document.getElementById('demoSubmit');
+
+  // Validação
+  let ok = true;
+  ['d-name','d-company','d-email'].forEach(id => {
+    const el = document.getElementById(id);
+    const val = el.value.trim();
+    const empty = !val || (id === 'd-email' && !val.includes('@'));
+    el.classList.toggle('err', empty);
+    if (empty) ok = false;
+  });
+  if (!ok) return;
+
+  btn.textContent = 'Enviando...'; btn.disabled = true;
   try {
-    await fetch('https://tavonapi.seellbr.com/demo', {
+    const res = await fetch('https://tavonapi.seellbr.com/demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ name, company, email, phone, message })
     });
-    b.textContent = '✓ Recebido — entraremos em contato!';
-    b.style.background = '#4ade80'; b.style.color = '#0b0c0f';
-    i.value = '';
+    if (!res.ok) throw new Error();
+    document.getElementById('demoForm').style.display = 'none';
+    document.getElementById('demoSuccess').style.display = 'block';
+    setTimeout(closeDemoModal, 3200);
   } catch {
-    b.textContent = 'Erro — tente novamente';
-    b.style.background = '#f87171';
-    setTimeout(() => { b.textContent = 'Quero uma demo'; b.style.background = ''; b.disabled = false; i.disabled = false; }, 2500);
+    btn.textContent = 'Erro — tente novamente';
+    btn.style.background = '#f87171'; btn.style.color = '#fff';
+    setTimeout(() => {
+      btn.textContent = 'Agendar demonstração';
+      btn.style.background = ''; btn.style.color = ''; btn.disabled = false;
+    }, 2500);
   }
 };
 })();

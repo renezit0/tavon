@@ -484,12 +484,14 @@ app.post("/demo", async (request, reply) => {
   const data = z.object({
     email:   z.string().email(),
     name:    z.string().min(1).optional(),
+    company: z.string().optional(),
+    phone:   z.string().optional(),
     message: z.string().optional(),
   }).parse(request.body);
   const ip = request.ip;
   await pool.query(
-    "INSERT INTO demo_requests (email, name, message, ip) VALUES (?, ?, ?, ?)",
-    [data.email, data.name || null, data.message || null, ip]
+    "INSERT INTO demo_requests (email, name, company, phone, message, ip) VALUES (?, ?, ?, ?, ?, ?)",
+    [data.email, data.name || null, data.company || null, data.phone || null, data.message || null, ip]
   );
   return reply.status(201).send({ ok: true });
 });

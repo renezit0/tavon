@@ -2058,11 +2058,10 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>E-mail</th>
-                  <th>Nome</th>
+                  <th>Nome / Empresa</th>
+                  <th>E-mail / Telefone</th>
                   <th>Mensagem</th>
                   <th>Status</th>
-                  <th>IP</th>
                   <th>Recebido em</th>
                   <th></th>
                 </tr>
@@ -2071,11 +2070,17 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
                 {filtered.map((r) => (
                   <tr key={r.id}>
                     <td>
-                      <a href={`mailto:${r.email}`} style={{ color: "var(--primary)", textDecoration: "none" }}>
-                        {r.email}
-                      </a>
+                      <div>{r.name || <span style={{ color: "var(--muted)" }}>—</span>}</div>
+                      {r.company && <div style={{ fontSize: 12, color: "var(--muted)" }}>{r.company}</div>}
                     </td>
-                    <td>{r.name || <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                    <td>
+                      <div>
+                        <a href={`mailto:${r.email}`} style={{ color: "var(--primary)", textDecoration: "none" }}>
+                          {r.email}
+                        </a>
+                      </div>
+                      {r.phone && <div style={{ fontSize: 12, color: "var(--muted)" }}>{r.phone}</div>}
+                    </td>
                     <td style={{ maxWidth: 220 }}>
                       <span title={r.message || ""} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {r.message || <span style={{ color: "var(--muted)" }}>—</span>}
@@ -2093,7 +2098,6 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
                         <option value="closed">Encerrado</option>
                       </select>
                     </td>
-                    <td style={{ fontSize: 12, color: "var(--muted)" }}>{r.ip || "—"}</td>
                     <td style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(r.created_at)}</td>
                     <td>
                       <button className="btn-icon danger" onClick={() => deleteReq(r.id)} title="Remover">

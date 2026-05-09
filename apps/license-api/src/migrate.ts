@@ -101,12 +101,18 @@ async function migrate() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(180) NOT NULL,
         name VARCHAR(180),
+        company VARCHAR(180),
+        phone VARCHAR(30),
         message TEXT,
         status ENUM('new','contacted','closed') NOT NULL DEFAULT 'new',
         ip VARCHAR(64),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    // Add company/phone to demo_requests if upgrading from older schema
+    await conn.query(`ALTER TABLE demo_requests ADD COLUMN IF NOT EXISTS company VARCHAR(180) AFTER name`).catch(() => {});
+    await conn.query(`ALTER TABLE demo_requests ADD COLUMN IF NOT EXISTS phone VARCHAR(30) AFTER company`).catch(() => {});
 
     // seed initial admin if not exists
     const adminEmail = process.env.ADMIN_EMAIL || "admin@tavon.com.br";
