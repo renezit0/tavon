@@ -2002,24 +2002,23 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
   const newCount = requests.filter((r) => r.status === "new").length;
 
   return (
-    <div className="page-wrap">
+    <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">
+          <div className="page-title">
             Solicitações de Demo
             {newCount > 0 && (
               <span style={{ marginLeft: 10, fontSize: 12, padding: "2px 8px", borderRadius: 999, background: "var(--primary-dim)", color: "var(--primary)" }}>
                 {newCount} novo{newCount > 1 ? "s" : ""}
               </span>
             )}
-          </h1>
-          <p className="page-sub">{requests.length} solicitação(ões) recebida(s) pelo site</p>
+          </div>
+          <div className="page-subtitle">{requests.length} solicitação(ões) recebida(s) pelo site</div>
         </div>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="search-input"
-          style={{ width: 160, cursor: "pointer" }}
+          className="filter-select"
         >
           <option value="">Todas</option>
           <option value="new">Novos</option>
@@ -2028,74 +2027,69 @@ function DemoPage({ toast }: { toast: (msg: string, type?: "success" | "error") 
         </select>
       </div>
 
-      {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-          <div className="spinner" />
-        </div>
-      ) : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>E-mail</th>
-                <th>Nome</th>
-                <th>Mensagem</th>
-                <th>Status</th>
-                <th>IP</th>
-                <th>Recebido em</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
+      <div className="section-card">
+        {loading ? (
+          <div className="loading-wrap"><div className="spinner" />Carregando...</div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <MessageSquare size={48} />
+            <p>Nenhuma solicitação encontrada</p>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "40px 0" }}>
-                    Nenhuma solicitação encontrada
-                  </td>
+                  <th>E-mail</th>
+                  <th>Nome</th>
+                  <th>Mensagem</th>
+                  <th>Status</th>
+                  <th>IP</th>
+                  <th>Recebido em</th>
+                  <th></th>
                 </tr>
-              )}
-              {filtered.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <a href={`mailto:${r.email}`} style={{ color: "var(--primary)", textDecoration: "none" }}>
-                      {r.email}
-                    </a>
-                  </td>
-                  <td>{r.name || <span style={{ color: "var(--muted)" }}>—</span>}</td>
-                  <td style={{ maxWidth: 220 }}>
-                    <span title={r.message || ""} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {r.message || <span style={{ color: "var(--muted)" }}>—</span>}
-                    </span>
-                  </td>
-                  <td>
-                    <select
-                      value={r.status}
-                      onChange={(e) => updateStatus(r.id, e.target.value)}
-                      style={{
-                        background: "var(--surface-2)", color: "var(--text)",
-                        border: "1px solid var(--border)", borderRadius: 6,
-                        padding: "3px 8px", fontSize: 12, cursor: "pointer",
-                      }}
-                    >
-                      <option value="new">Novo</option>
-                      <option value="contacted">Contatado</option>
-                      <option value="closed">Encerrado</option>
-                    </select>
-                  </td>
-                  <td style={{ fontSize: 12, color: "var(--muted)" }}>{r.ip || "—"}</td>
-                  <td style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(r.created_at)}</td>
-                  <td>
-                    <button className="btn-icon" onClick={() => deleteReq(r.id)} title="Remover">
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody>
+                {filtered.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <a href={`mailto:${r.email}`} style={{ color: "var(--primary)", textDecoration: "none" }}>
+                        {r.email}
+                      </a>
+                    </td>
+                    <td>{r.name || <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                    <td style={{ maxWidth: 220 }}>
+                      <span title={r.message || ""} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.message || <span style={{ color: "var(--muted)" }}>—</span>}
+                      </span>
+                    </td>
+                    <td>
+                      <select
+                        value={r.status}
+                        onChange={(e) => updateStatus(r.id, e.target.value)}
+                        className="filter-select"
+                        style={{ fontSize: 12, padding: "3px 8px" }}
+                      >
+                        <option value="new">Novo</option>
+                        <option value="contacted">Contatado</option>
+                        <option value="closed">Encerrado</option>
+                      </select>
+                    </td>
+                    <td style={{ fontSize: 12, color: "var(--muted)" }}>{r.ip || "—"}</td>
+                    <td style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(r.created_at)}</td>
+                    <td>
+                      <button className="btn-icon danger" onClick={() => deleteReq(r.id)} title="Remover">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
