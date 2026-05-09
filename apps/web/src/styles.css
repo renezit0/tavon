@@ -1260,6 +1260,7 @@ textarea:focus {
 
 .featured-card {
   position: relative;
+  z-index: 1;
   min-width: 240px;
   max-width: 300px;
   border-radius: var(--radius);
@@ -1272,6 +1273,10 @@ textarea:focus {
   flex-direction: column;
   transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
   flex-shrink: 0;
+}
+
+.featured-card:hover {
+  z-index: 2;
 }
 
 .featured-card:hover {
