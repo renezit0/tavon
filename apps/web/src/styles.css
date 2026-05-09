@@ -1282,10 +1282,12 @@ textarea:focus {
 }
 
 .featured-card img {
-  width: 100%;
+  width: calc(100% - 16px);
   height: 130px;
   object-fit: cover;
   display: block;
+  margin: 8px 8px 0;
+  border-radius: calc(var(--radius) - 1px);
   transition: transform 320ms ease;
 }
 
