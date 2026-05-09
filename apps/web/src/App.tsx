@@ -2520,7 +2520,9 @@ function CustomerMenu(props: {
             .slice(0, 5)
             .map((product) => (
               <button key={product.id} className="featured-card" onClick={() => setSelectedProduct(product)}>
-                <img src={product.imageUrl} alt="" />
+                <div className="featured-card-img-wrap">
+                  <img src={product.imageUrl} alt="" />
+                </div>
                 <span className="featured-pill">Destaque</span>
                 <div className="featured-card-info">
                   <span>{product.name}</span>
