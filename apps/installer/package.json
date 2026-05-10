@@ -1,6 +1,6 @@
 {
   "name": "tavon-installer",
-  "version": "0.1.15",
+  "version": "0.1.22",
   "private": true,
   "description": "Tavon Suite — Instalador Personalizado",
   "author": "Tavon",
@@ -8,11 +8,19 @@
   "scripts": {
     "dev": "electron .",
     "dist:win": "electron-builder --win nsis --x64",
-    "dist:win:only": "electron-builder --win nsis --x64 --publish never"
+    "dist:win:only": "electron-builder --win nsis --x64 --publish never",
+    "publish:win": "electron-builder --win nsis --x64 --publish always"
   },
   "build": {
     "appId": "com.tavon.installer",
     "productName": "Tavon Installer",
+    "publish": {
+      "provider": "github",
+      "owner": "renezit0",
+      "repo": "tavon",
+      "tagNamePrefix": "installer-v",
+      "releaseType": "release"
+    },
     "directories": {
       "output": "../../release/installer"
     },

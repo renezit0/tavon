@@ -1,6 +1,6 @@
 {
   "name": "@restaurant/server-manager",
-  "version": "0.1.11",
+  "version": "0.1.22",
   "private": true,
   "description": "Tavon Server Manager — gerencia o servidor backend da suite Tavon.",
   "author": "Tavon",
@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "WEB_URL=http://localhost:5181 electron .",
     "dev:ui": "vite --port 5181",
-    "build": "tsc -p tsconfig.json && vite build",
+    "build": "cd ../.. && npm run build -w packages/shared && npm run build -w apps/api && cd apps/server-manager && tsc -p tsconfig.json && vite build && node scripts/prepare-runtime.cjs",
     "dist:win": "npm run build && electron-builder --win nsis --x64",
     "publish:win": "npm run build && electron-builder --win nsis --x64 --publish always",
     "dist:mac": "npm run build && electron-builder --mac dmg --config.directories.output=../../release/mac --config.artifactName=Tavon-Server-\\${version}.dmg"
@@ -21,7 +21,8 @@
       "provider": "github",
       "owner": "renezit0",
       "repo": "tavon",
-      "tagNamePrefix": "server-v"
+      "tagNamePrefix": "server-v",
+      "releaseType": "release"
     },
     "directories": {
       "output": "../../release/windows"
@@ -39,22 +40,10 @@
         "to": "api/dist"
       },
       {
-        "from": "../../node_modules",
+        "from": ".server-runtime/node_modules",
         "to": "node_modules",
         "filter": [
-          "**/*",
-          "!.bin{,/**/*}",
-          "!electron{,/**/*}",
-          "!electron-builder{,/**/*}",
-          "!@electron{,/**/*}",
-          "!@restaurant{,/**/*}",
-          "!app-builder-bin{,/**/*}",
-          "!builder-util{,/**/*}",
-          "!builder-util-runtime{,/**/*}",
-          "!dmg-builder{,/**/*}",
-          "!app-builder-lib{,/**/*}",
-          "!typescript{,/**/*}",
-          "!vite{,/**/*}"
+          "**/*"
         ]
       },
       {
@@ -77,6 +66,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true
+    },
+    "extraMetadata": {
+      "updaterCacheDirName": "tavon-server-updater",
+      "name": "tavon-server"
     }
   },
   "dependencies": {
